@@ -1,0 +1,23 @@
+[
+  {
+    "id": 1,
+    "name": "Lignes de Bus",
+    "password": "bus123",
+    "columns": ["Ligne 1", "Ligne 2", "Ligne 3", "Ligne 4"],
+    "created_at": "2024-01-01 10:00:00"
+  },
+  {
+    "id": 2,
+    "name": "Événements Sportifs",
+    "password": null,
+    "columns": ["Football", "Tennis", "Natation", "Athlétisme"],
+    "created_at": "2024-01-02 14:30:00"
+  },
+  {
+    "id": 3,
+    "name": "Cours de Langues",
+    "password": "langues2024",
+    "columns": ["Anglais", "Espagnol", "Allemand", "Français"],
+    "created_at": "2024-01-03 09:15:00"
+  }
+]

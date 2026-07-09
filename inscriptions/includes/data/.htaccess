@@ -1,0 +1,13 @@
+# ============================================
+# Bloquer l'accès direct aux fichiers de données
+# ============================================
+
+# Désactiver toute exécution PHP dans ce dossier
+php_flag engine off
+
+# Interdire l'accès à tous les fichiers
+Order Deny,Allow
+Deny from all
+
+# Empêcher le listing des dossiers
+Options -Indexes

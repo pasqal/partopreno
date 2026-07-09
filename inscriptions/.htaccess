@@ -1,0 +1,39 @@
+# ============================================
+# Configuration Apache pour le système d'inscription
+# ============================================
+
+# Désactiver le listing des dossiers
+Options -Indexes
+
+# Empêcher l'accès direct aux fichiers sensibles
+<FilesMatch "\.(json|csv|txt|php|config)$">
+    # Autoriser l'accès aux fichiers PHP
+    <IfModule mod_php.c>
+        php_flag engine on
+    </IfModule>
+    
+    # Bloquer l'accès direct aux fichiers JSON/CSV/TXT dans /includes/data/
+    RewriteEngine On
+    RewriteCond %{REQUEST_URI} /includes/data/ [NC]
+    RewriteCond %{REQUEST_FILENAME} !\.php$ [NC]
+    RewriteRule \.(json|csv|txt)$ - [F,L]
+</FilesMatch>
+
+# Bloquer l'accès direct au dossier includes/data/
+<DirectoryMatch "^/includes/data/">
+    Order Deny,Allow
+    Deny from all
+    <FilesMatch "\.php$">
+        Allow from all
+    </FilesMatch>
+</DirectoryMatch>
+
+# Rediriger les erreurs 404 vers la page d'accueil
+ErrorDocument 404 /inscriptions/
+
+# Activer la réécriture d'URL
+RewriteEngine On
+
+# Rediriger /inscriptions vers /inscriptions/user/
+RewriteCond %{REQUEST_URI} ^/inscriptions/$ [NC]
+RewriteRule ^(.*)$ /inscriptions/user/ [R=301,L]
