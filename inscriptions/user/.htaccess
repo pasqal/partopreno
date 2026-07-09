@@ -1,0 +1,12 @@
+# ============================================
+# Protection du dossier user
+# ============================================
+
+# Désactiver le listing des dossiers
+Options -Indexes
+
+# Empêcher l'accès aux fichiers sensibles
+<FilesMatch "\.(json|csv|txt|md|log|bak|sql)$">
+    Order Deny,Allow
+    Deny from all
+</FilesMatch>

@@ -1,0 +1,18 @@
+# ============================================
+# Protection du dossier admin
+# ============================================
+
+# Désactiver le listing des dossiers
+Options -Indexes
+
+# Bloquer l'accès direct aux fichiers PHP sans authentification
+# (Géré par le code PHP, mais on peut ajouter une couche supplémentaire)
+<FilesMatch "\.php$">
+    # Pas de restrictions supplémentaires ici car géré par le code
+</FilesMatch>
+
+# Empêcher l'accès aux fichiers sensibles
+<FilesMatch "\.(json|csv|txt|md|log|bak|sql)$">
+    Order Deny,Allow
+    Deny from all
+</FilesMatch>
