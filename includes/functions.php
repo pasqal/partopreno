@@ -3,7 +3,11 @@
 // Fonctions utilitaires pour le système d'inscription
 // ============================================
 
-require_once __DIR__ . '/config.php';
+// NOTE: config.php doit être inclus AVANT ce fichier
+// Si ce fichier est inclus directement sans config.php, on l'inclut
+if (!defined('BASE_URL')) {
+    require_once __DIR__ . '/config.php';
+}
 
 // ============================================
 // Gestion des listes
@@ -382,6 +386,10 @@ function redirect($url) {
  * @return string URL absolue
  */
 function url($path) {
+    // Si BASE_URL n'est pas défini, on le définit (fallback)
+    if (!defined('BASE_URL')) {
+        define('BASE_URL', '/');
+    }
     // Supprimer les slashes de début de $path
     $path = ltrim($path, '/');
     // BASE_URL se termine déjà par /, donc on concatène directement
