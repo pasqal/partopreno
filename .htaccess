@@ -34,7 +34,3 @@ ErrorDocument 404 /
 
 # Activer la réécriture d'URL
 RewriteEngine On
-
-# Rediriger /inscriptions vers /inscriptions/user/
-RewriteCond %{REQUEST_URI} ^/$ [NC]
-RewriteRule ^(.*)$ user/ [R=301,L]

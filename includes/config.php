@@ -19,7 +19,8 @@ define('REGISTRATIONS_DIR', DATA_DIR . 'registrations/');
 define('LISTS_FILE', DATA_DIR . 'lists.json');
 
 // --- Base URL pour les liens ---
-define('BASE_URL', rtrim(dirname($_SERVER['SCRIPT_NAME']), '/') . '/');
+// Le site est installé à la racine, donc BASE_URL est toujours /
+define('BASE_URL', '/');
 
 // --- Options ---
 // Affiche les erreurs PHP (désactivez en production)
