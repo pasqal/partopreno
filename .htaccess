@@ -29,11 +29,11 @@ Options -Indexes
 </DirectoryMatch>
 
 # Rediriger les erreurs 404 vers la page d'accueil
-ErrorDocument 404 /inscriptions/
+ErrorDocument 404 /
 
 # Activer la réécriture d'URL
 RewriteEngine On
 
 # Rediriger /inscriptions vers /inscriptions/user/
-RewriteCond %{REQUEST_URI} ^/inscriptions/$ [NC]
-RewriteRule ^(.*)$ /inscriptions/user/ [R=301,L]
+RewriteCond %{REQUEST_URI} ^/$ [NC]
+RewriteRule ^(.*)$ /user/ [R=301,L]
