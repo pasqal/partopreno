@@ -34,13 +34,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (isset($_POST['column'])) {
         // Clic sur une case : ajouter/supprimer l'inscription
         $column = sanitizeInput($_POST['column']);
-        if (in_array($column, $list['columns'])) {
+        // Vérifier que la colonne existe dans la liste
+        $columnExists = false;
+        foreach ($list['columns'] as $col) {
+            $colName = is_array($col) ? $col['name'] : $col;
+            if ($colName === $column) {
+                $columnExists = true;
+                break;
+            }
+        }
+        if ($columnExists) {
             registerUser($listId, $userName, $column);
         }
     } elseif (isset($_POST['remove_column'])) {
         // Clic sur une ligne : supprimer l'inscription
         $column = sanitizeInput($_POST['remove_column']);
-        if (in_array($column, $list['columns'])) {
+        $columnExists = false;
+        foreach ($list['columns'] as $col) {
+            $colName = is_array($col) ? $col['name'] : $col;
+            if ($colName === $column) {
+                $columnExists = true;
+                break;
+            }
+        }
+        if ($columnExists) {
             registerUser($listId, $userName, $column);
         }
     }
@@ -50,6 +67,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 // Charger les inscriptions
 $registrations = getAllRegistrations($listId);
 $userRegistrations = isset($registrations[$userName]) ? $registrations[$userName] : [];
+
+// Organiser les colonnes par catégorie
+$columnsByCategory = getColumnsByCategory($list);
 
 include __DIR__ . '/../includes/header.php';
 ?>
@@ -73,67 +93,71 @@ include __DIR__ . '/../includes/header.php';
     <?php endif; ?>
     
     <div class="registration-container">
-        <table class="registration-table">
-            <tbody>
-                <?php
-                // Afficher chaque colonne comme une ligne
-                foreach ($list['columns'] as $index => $column):
-                    $isRegistered = in_array($column, $userRegistrations);
-                    $usersInColumn = [];
-                    
-                    // Récupérer tous les utilisateurs inscrits à cette colonne
-                    foreach ($registrations as $name => $userCols):
-                        if (in_array($column, $userCols)) {
-                            $usersInColumn[] = htmlspecialchars($name);
-                        }
+        <?php
+        // Afficher chaque catégorie
+        foreach ($columnsByCategory as $category => $columns):
+            // Afficher le titre de la catégorie si elle existe
+            if (!empty($category)):
+                echo '<h3 class="category-title">' . htmlspecialchars($category) . '</h3>';
+            endif;
+            
+            // Tableau pour cette catégorie
+            echo '<table class="registration-table">';
+            echo '<tbody>';
+            
+            foreach ($columns as $col):
+                $columnName = $col['name'];
+                $isRegistered = in_array($columnName, $userRegistrations);
+                $usersInColumn = [];
+                
+                // Récupérer tous les utilisateurs inscrits à cette colonne
+                foreach ($registrations as $name => $userCols) {
+                    if (in_array($columnName, $userCols)) {
+                        $usersInColumn[] = htmlspecialchars($name);
+                    }
+                }
+                
+                echo '<tr class="column-row" data-column="' . htmlspecialchars($columnName) . '">';
+                
+                // Cellule de l'entrée (colonne)
+                echo '<td class="column-name">';
+                echo '<form method="post" action="' . url('user/list.php?id=' . $listId) . '" style="margin: 0;">';
+                echo '<input type="hidden" name="remove_column" value="' . htmlspecialchars($columnName) . '">';
+                echo '<button type="submit" class="column-name-btn" style="background: none; border: none; text-align: left; width: 100%; cursor: pointer;">';
+                echo htmlspecialchars($columnName);
+                echo '</button>';
+                echo '</form>';
+                echo '</td>';
+                
+                // Cellule des inscriptions
+                echo '<td class="users-cell">';
+                
+                // Case à cocher pour s'inscrire
+                echo '<form method="post" action="' . url('user/list.php?id=' . $listId) . '" style="margin: 0; display: inline-block;">';
+                echo '<input type="hidden" name="column" value="' . htmlspecialchars($columnName) . '">';
+                echo '<button type="submit" class="cell-btn ' . ($isRegistered ? 'registered' : '') . '">';
+                echo $isRegistered ? '✓' : '+';
+                echo '</button>';
+                echo '</form>';
+                
+                // Afficher les bulles avec les noms des utilisateurs inscrits
+                if (!empty($usersInColumn)):
+                    echo '<div class="users-bubbles">';
+                    foreach ($usersInColumn as $name):
+                        $isCurrentUser = ($name === htmlspecialchars($userName));
+                        echo '<span class="user-bubble ' . ($isCurrentUser ? 'current-user' : '') . '">' . $name . '</span>';
                     endforeach;
-                    
-                    // Déterminer si on affiche un séparateur de titre (toutes les 5 lignes par exemple)
-                    $showTitleSeparator = ($index % 5 == 0 && $index > 0);
-                    
-                    if ($showTitleSeparator):
-                        echo '<tr class="title-separator"><td colspan="2"><hr></td></tr>';
-                    endif;
-                    
-                    echo '<tr class="column-row" data-column="' . htmlspecialchars($column) . '">';
-                    
-                    // Cellule de l'entrée (colonne)
-                    echo '<td class="column-name">';
-                    echo '<form method="post" action="' . url('user/list.php?id=' . $listId) . '" style="margin: 0;">';
-                    echo '<input type="hidden" name="remove_column" value="' . htmlspecialchars($column) . '">';
-                    echo '<button type="submit" class="column-name-btn" style="background: none; border: none; text-align: left; width: 100%; cursor: pointer;">';
-                    echo htmlspecialchars($column);
-                    echo '</button>';
-                    echo '</form>';
-                    echo '</td>';
-                    
-                    // Cellule des inscriptions
-                    echo '<td class="users-cell">';
-                    
-                    // Case à cocher pour s'inscrire
-                    echo '<form method="post" action="' . url('user/list.php?id=' . $listId) . '" style="margin: 0; display: inline-block;">';
-                    echo '<input type="hidden" name="column" value="' . htmlspecialchars($column) . '">';
-                    echo '<button type="submit" class="cell-btn ' . ($isRegistered ? 'registered' : '') . '">';
-                    echo $isRegistered ? '✓' : '+';
-                    echo '</button>';
-                    echo '</form>';
-                    
-                    // Afficher les bulles avec les noms des utilisateurs inscrits
-                    if (!empty($usersInColumn)):
-                        echo '<div class="users-bubbles">';
-                        foreach ($usersInColumn as $name):
-                            $isCurrentUser = ($name === htmlspecialchars($userName));
-                            echo '<span class="user-bubble ' . ($isCurrentUser ? 'current-user' : '') . '">' . $name . '</span>';
-                        endforeach;
-                        echo '</div>';
-                    endif;
-                    
-                    echo '</td>';
-                    echo '</tr>';
-                endforeach;
-                ?>
-            </tbody>
-        </table>
+                    echo '</div>';
+                endif;
+                
+                echo '</td>';
+                echo '</tr>';
+            endforeach;
+            
+            echo '</tbody>';
+            echo '</table>';
+        endforeach;
+        ?>
     </div>
     
     <div class="mt-2 legend">
@@ -167,7 +191,6 @@ include __DIR__ . '/../includes/header.php';
         padding: 4px 10px; border-radius: 15px; margin: 3px; font-size: 12px;
     }
     .user-bubble.current-user { background-color: #28a745; }
-    .title-separator hr { border: none; border-top: 2px solid #ddd; margin: 10px 0; }
     .column-row:hover { background-color: #f8f9fa; }
     .legend { margin-top: 20px; padding: 15px; background-color: #f8f9fa; border-radius: 5px; }
     .legend ul { list-style: none; padding: 0; display: flex; gap: 20px; align-items: center; }
@@ -177,6 +200,12 @@ include __DIR__ . '/../includes/header.php';
         border-radius: 50%; font-size: 14px;
     }
     .legend-mark.registered { background-color: #4a6fa5; color: white; }
+    .category-title {
+        color: #4a6fa5;
+        border-bottom: 2px solid #4a6fa5;
+        padding-bottom: 8px;
+        margin: 20px 0 10px 0;
+    }
 </style>
 
 <?php

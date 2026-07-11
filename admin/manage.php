@@ -8,7 +8,7 @@ require_once __DIR__ . '/../includes/functions.php';
 
 // Vérifier la connexion admin
 if (!isAdminLoggedIn() || !checkSessionTimeout()) {
-    redirect(url('admin/login.php');
+    redirect(url('admin/login.php'));
 }
 
 // Variables
@@ -30,14 +30,14 @@ if (isset($_GET['delete']) && is_numeric($_GET['delete'])) {
         $error = 'Erreur lors de la suppression de la liste.';
     }
     
-    redirect(url('admin/manage.php?message=' . urlencode($success ?: $error));
+    redirect(url('admin/manage.php?message=' . urlencode($success ?: $error)));
 }
 
 // Gérer l'édition
 if (isset($_GET['edit']) && is_numeric($_GET['edit'])) {
     $listToEdit = getListById((int)$_GET['edit']);
     if (!$listToEdit) {
-        redirect(url('admin/manage.php');
+        redirect(url('admin/manage.php'));
     }
 }
 
@@ -52,13 +52,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $name = isset($_POST['name']) ? sanitizeInput($_POST['name']) : '';
         $password = isset($_POST['password']) ? trim($_POST['password']) : null;
         $description = isset($_POST['description']) ? trim($_POST['description']) : null;
-        $columnsInput = isset($_POST['columns']) ? trim($_POST['columns']) : '';
         
-        // Convertir les colonnes en tableau
+        // Récupérer les colonnes et catégories depuis le formulaire
         $columns = [];
-        if (!empty($columnsInput)) {
+        $categories = isset($_POST['category']) ? $_POST['category'] : [];
+        $columnNames = isset($_POST['column_name']) ? $_POST['column_name'] : [];
+        
+        // Si on utilise l'ancien format (une seule textarea)
+        if (isset($_POST['columns']) && !empty(trim($_POST['columns']))) {
+            $columnsInput = trim($_POST['columns']);
             $columns = array_map('trim', explode(",", $columnsInput));
-            $columns = array_filter($columns); // Supprimer les entrées vides
+            $columns = array_filter($columns);
+        } else {
+            // Nouveau format avec catégories
+            foreach ($columnNames as $index => $colName) {
+                $colName = trim($colName);
+                if (!empty($colName)) {
+                    $category = isset($categories[$index]) ? trim($categories[$index]) : '';
+                    $columns[] = [
+                        'name' => $colName,
+                        'category' => $category
+                    ];
+                }
+            }
         }
         
         // Validation
@@ -96,7 +112,7 @@ include __DIR__ . '/../includes/header.php';
     <div class="header-flex">
         <h1><?php echo $listToEdit ? 'Modifier une liste' : 'Gérer les listes'; ?></h1>
         <div>
-            <a href="<?php echo url('admin/index.php" class="btn btn-secondary">← Retour au tableau de bord</a>
+            <a href="<?php echo url('admin/index.php'); ?>" class="btn btn-secondary">← Retour au tableau de bord</a>
         </div>
     </div>
     
@@ -129,6 +145,7 @@ include __DIR__ . '/../includes/header.php';
                             <th>Nom</th>
                             <th>Description</th>
                             <th>Colonnes</th>
+                            <th>Catégories</th>
                             <th>Mot de passe</th>
                             <th>Actions</th>
                         </tr>
@@ -139,13 +156,33 @@ include __DIR__ . '/../includes/header.php';
                                 <td><?php echo $list['id']; ?></td>
                                 <td><?php echo htmlspecialchars($list['name']); ?></td>
                                 <td><?php echo !empty($list['description']) ? nl2br(htmlspecialchars(substr($list['description'], 0, 50)) . (strlen($list['description']) > 50 ? '...' : '')) : '<span class="badge badge-info">Aucune</span>'; ?></td>
-                                <td><?php echo implode(', ', array_map('htmlspecialchars', array_slice($list['columns'], 0, 3))) . (count($list['columns']) > 3 ? '...' : ''); ?></td>
+                                <td><?php 
+                                    $colCount = 0;
+                                    if (!empty($list['columns'])) {
+                                        if (isset($list['columns'][0]['name'])) {
+                                            $colCount = count($list['columns']);
+                                        } else {
+                                            $colCount = count($list['columns']);
+                                        }
+                                    }
+                                    echo $colCount;
+                                    ?></td>
+                                <td><?php 
+                                    $catCount = 0;
+                                    if (!empty($list['columns']) && isset($list['columns'][0]['category'])) {
+                                        $categories = array_unique(array_column($list['columns'], 'category'));
+                                        $catCount = count(array_filter($categories));
+                                        echo $catCount > 0 ? $catCount : 'Aucune';
+                                    } else {
+                                        echo 'Aucune';
+                                    }
+                                    ?></td>
                                 <td>
                                     <?php echo !empty($list['password']) ? '<span class="badge badge-warning">Oui</span>' : '<span class="badge badge-success">Non</span>'; ?>
                                 </td>
                                 <td>
-                                    <a href="<?php echo url('admin/manage.php?edit=<?php echo $list['id']; ?>" class="btn btn-small btn-edit">Modifier</a>
-                                    <a href="<?php echo url('admin/manage.php?delete=<?php echo $list['id']; ?>&csrf_token=<?php echo generateCsrfToken(); ?>" class="btn btn-small btn-delete" onclick="return confirm('Êtes-vous sûr de vouloir supprimer cette liste ?');">Supprimer</a>
+                                    <a href="<?php echo url('admin/manage.php?edit=' . $list['id']); ?>" class="btn btn-small btn-edit">Modifier</a>
+                                    <a href="<?php echo url('admin/manage.php?delete=' . $list['id']); ?>" class="btn btn-small btn-delete" onclick="return confirm('Êtes-vous sûr de vouloir supprimer cette liste ?');">Supprimer</a>
                                 </td>
                             </tr>
                         <?php endforeach; ?>
@@ -174,9 +211,16 @@ include __DIR__ . '/../includes/header.php';
             </div>
             
             <div class="form-group">
-                <label for="columns">Colonnes (séparées par des virgules) *</label>
-                <textarea id="columns" name="columns" rows="3" placeholder="Ex: Ligne 1, Ligne 2, Ligne 3" required></textarea>
-                <small>Séparez chaque colonne par une virgule. Utilisez l'import Markdown pour une structure plus complexe.</small>
+                <label>Colonnes avec catégories *</label>
+                <div id="columns-container">
+                    <div class="column-row">
+                        <input type="text" name="category[]" placeholder="Catégorie (optionnelle)" style="width: 30%; margin-right: 10px;">
+                        <input type="text" name="column_name[]" placeholder="Nom de la colonne *" style="width: 60%;" required>
+                        <button type="button" class="btn btn-small btn-delete" onclick="removeColumnRow(this)">×</button>
+                    </div>
+                </div>
+                <button type="button" class="btn btn-small btn-primary" onclick="addColumnRow()" style="margin-top: 10px;">+ Ajouter une colonne</button>
+                <small>Laissez la catégorie vide pour les colonnes sans catégorie.</small>
             </div>
             
             <div class="form-group">
@@ -190,7 +234,7 @@ include __DIR__ . '/../includes/header.php';
         </form>
         
         <div class="import-link">
-            <p>Pour importer une liste depuis un fichier CSV ou Markdown : <a href="<?php echo url('admin/import.php" class="btn btn-small btn-primary">Aller à l'import</a></p>
+            <p>Pour importer une liste depuis un fichier CSV ou Markdown : <a href="<?php echo url('admin/import.php'); ?>" class="btn btn-small btn-primary">Aller à l'import</a></p>
         </div>
         
     <?php else: ?>
@@ -213,9 +257,31 @@ include __DIR__ . '/../includes/header.php';
             </div>
             
             <div class="form-group">
-                <label for="columns">Colonnes (séparées par des virgules) *</label>
-                <textarea id="columns" name="columns" rows="3" required><?php echo htmlspecialchars(implode(', ', $listToEdit['columns'])); ?></textarea>
-                <small>Séparez chaque colonne par une virgule.</small>
+                <label>Colonnes avec catégories *</label>
+                <div id="columns-container">
+                    <?php
+                    // Si l'ancienne structure (tableau simple)
+                    if (!empty($listToEdit['columns']) && !isset($listToEdit['columns'][0]['name'])) {
+                        foreach ($listToEdit['columns'] as $col) {
+                            echo '<div class="column-row">';
+                            echo '<input type="text" name="category[]" placeholder="Catégorie" style="width: 30%; margin-right: 10px;" value="">';
+                            echo '<input type="text" name="column_name[]" placeholder="Nom de la colonne *" style="width: 60%;" value="' . htmlspecialchars($col) . '" required>';
+                            echo '<button type="button" class="btn btn-small btn-delete" onclick="removeColumnRow(this)">×</button>';
+                            echo '</div>';
+                        }
+                    } elseif (!empty($listToEdit['columns'])) {
+                        foreach ($listToEdit['columns'] as $col) {
+                            echo '<div class="column-row">';
+                            echo '<input type="text" name="category[]" placeholder="Catégorie" style="width: 30%; margin-right: 10px;" value="' . htmlspecialchars($col['category'] ?? '') . '">';
+                            echo '<input type="text" name="column_name[]" placeholder="Nom de la colonne *" style="width: 60%;" value="' . htmlspecialchars($col['name']) . '" required>';
+                            echo '<button type="button" class="btn btn-small btn-delete" onclick="removeColumnRow(this)">×</button>';
+                            echo '</div>';
+                        }
+                    }
+                    ?>
+                </div>
+                <button type="button" class="btn btn-small btn-primary" onclick="addColumnRow()" style="margin-top: 10px;">+ Ajouter une colonne</button>
+                <small>Laissez la catégorie vide pour les colonnes sans catégorie.</small>
             </div>
             
             <div class="form-group">
@@ -225,10 +291,48 @@ include __DIR__ . '/../includes/header.php';
             </div>
             
             <button type="submit" class="btn btn-primary">Mettre à jour</button>
-            <a href="<?php echo url('admin/manage.php" class="btn btn-secondary">Annuler</a>
+            <a href="<?php echo url('admin/manage.php'); ?>" class="btn btn-secondary">Annuler</a>
         </form>
     <?php endif; ?>
 </div>
+
+<script>
+// Fonctions pour gérer les lignes de colonnes dynamiquement
+function addColumnRow() {
+    const container = document.getElementById('columns-container');
+    const row = document.createElement('div');
+    row.className = 'column-row';
+    row.innerHTML = `
+        <input type="text" name="category[]" placeholder="Catégorie (optionnelle)" style="width: 30%; margin-right: 10px;">
+        <input type="text" name="column_name[]" placeholder="Nom de la colonne *" style="width: 60%;" required>
+        <button type="button" class="btn btn-small btn-delete" onclick="removeColumnRow(this)">×</button>
+    `;
+    container.appendChild(row);
+}
+
+function removeColumnRow(button) {
+    const row = button.parentElement;
+    const container = document.getElementById('columns-container');
+    if (container.children.length > 1) {
+        container.removeChild(row);
+    } else {
+        alert('Vous devez avoir au moins une colonne.');
+    }
+}
+</script>
+
+<style>
+.column-row {
+    display: flex;
+    align-items: center;
+    margin-bottom: 8px;
+}
+.column-row input {
+    padding: 6px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+}
+</style>
 
 <?php
 include __DIR__ . '/../includes/footer.php';

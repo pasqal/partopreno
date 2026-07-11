@@ -67,6 +67,40 @@ function getListByName($name) {
 }
 
 /**
+ * Normaliser les colonnes pour le stockage
+ * Convertit les colonnes en tableau avec name et category
+ * @param array|string $columns Colonnes à normaliser
+ * @return array Tableau normalisé
+ */
+function normalizeColumns($columns) {
+    $normalized = [];
+    
+    if (is_string($columns)) {
+        // Ancien format: chaîne séparée par des virgules
+        $items = array_map('trim', explode(",", $columns));
+        foreach ($items as $item) {
+            $normalized[] = ['name' => $item, 'category' => ''];
+        }
+    } elseif (is_array($columns)) {
+        // Nouveau format: tableau de colonnes
+        foreach ($columns as $col) {
+            if (is_array($col) && isset($col['name'])) {
+                // Déjà normalisé
+                $normalized[] = [
+                    'name' => $col['name'],
+                    'category' => $col['category'] ?? ''
+                ];
+            } elseif (is_string($col)) {
+                // Ancien format: chaîne simple
+                $normalized[] = ['name' => $col, 'category' => ''];
+            }
+        }
+    }
+    
+    return $normalized;
+}
+
+/**
  * Ajouter une nouvelle liste
  * @param string $name Nom de la liste
  * @param array $columns Tableau des colonnes (noms des lignes/événements)
@@ -86,12 +120,15 @@ function addList($name, $columns, $password = null, $description = null) {
     }
     $newId = $maxId + 1;
     
+    // Normaliser les colonnes
+    $normalizedColumns = normalizeColumns($columns);
+    
     $newList = [
         'id' => $newId,
         'name' => $name,
         'password' => $password,
         'description' => $description,
-        'columns' => $columns,
+        'columns' => $normalizedColumns,
         'created_at' => date('Y-m-d H:i:s')
     ];
     
@@ -120,10 +157,13 @@ function updateList($id, $name, $columns, $password = null, $description = null)
     $lists = loadLists();
     $found = false;
     
+    // Normaliser les colonnes
+    $normalizedColumns = normalizeColumns($columns);
+    
     foreach ($lists as &$list) {
         if ($list['id'] == $id) {
             $list['name'] = $name;
-            $list['columns'] = $columns;
+            $list['columns'] = $normalizedColumns;
             $list['password'] = $password;
             $list['description'] = $description;
             $found = true;
@@ -175,7 +215,7 @@ function deleteList($id) {
 /**
  * Charger les inscriptions pour une liste
  * @param int $listId ID de la liste
- * @return array Tableau des inscriptions (clé = nom utilisateur, valeur = tableau des colonnes cochées)
+ * @return array Tableau des inscriptions (clé = nom utilisateur, valeur = tableau des noms de colonnes)
  */
 function loadRegistrations($listId) {
     $registrationFile = REGISTRATIONS_DIR . 'list_' . $listId . '.json';
@@ -207,7 +247,7 @@ function saveRegistrations($listId, $registrations) {
  * Inscrire un utilisateur à une colonne
  * @param int $listId ID de la liste
  * @param string $userName Nom de l'utilisateur
- * @param string $column Nom de la colonne
+ * @param string $column Nom de la colonne (peut être un tableau avec 'name' ou juste une chaîne)
  * @return bool Succès ou échec
  */
 function registerUser($listId, $userName, $column) {
@@ -215,6 +255,11 @@ function registerUser($listId, $userName, $column) {
     
     if (!isset($registrations[$userName])) {
         $registrations[$userName] = [];
+    }
+    
+    // Si $column est un tableau (format nouveau), on prend le name
+    if (is_array($column) && isset($column['name'])) {
+        $column = $column['name'];
     }
     
     // Basculer l'état (si déjà inscrit, on le retire, sinon on l'ajoute)
@@ -256,6 +301,39 @@ function getAllRegistrations($listId) {
     return loadRegistrations($listId);
 }
 
+/**
+ * Obtenir les colonnes d'une liste organisées par catégorie
+ * @param array $list La liste
+ * @return array Tableau organisé par catégorie
+ */
+function getColumnsByCategory($list) {
+    $organized = [];
+    
+    if (empty($list['columns'])) {
+        return $organized;
+    }
+    
+    // Vérifier si les colonnes sont dans l'ancien format (tableau de chaînes)
+    if (!isset($list['columns'][0]['name'])) {
+        // Ancien format: convertir en nouveau format
+        foreach ($list['columns'] as $colName) {
+            $organized[''][] = ['name' => $colName, 'category' => ''];
+        }
+        return $organized;
+    }
+    
+    // Nouveau format: déjà avec catégories
+    foreach ($list['columns'] as $col) {
+        $category = $col['category'] ?? '';
+        if (!isset($organized[$category])) {
+            $organized[$category] = [];
+        }
+        $organized[$category][] = $col;
+    }
+    
+    return $organized;
+}
+
 // ============================================
 // Import/Export CSV
 // ============================================
@@ -293,7 +371,7 @@ function importListFromCSV($filePath) {
     for ($i = 1; $i < count($parts); $i++) {
         $column = trim($parts[$i]);
         if (!empty($column)) {
-            $columns[] = $column;
+            $columns[] = ['name' => $column, 'category' => ''];
         }
     }
     
@@ -331,16 +409,17 @@ function exportListToCSV($listId) {
     // En-tête
     $csv = [];
     $header = ['Utilisateur'];
-    foreach ($list['columns'] as $column) {
-        $header[] = $column;
+    foreach ($list['columns'] as $col) {
+        $header[] = is_array($col) ? $col['name'] : $col;
     }
     $csv[] = implode(',', $header);
     
     // Données
     foreach ($registrations as $userName => $userColumns) {
         $row = [$userName];
-        foreach ($list['columns'] as $column) {
-            $row[] = in_array($column, $userColumns) ? 'X' : '';
+        foreach ($list['columns'] as $col) {
+            $colName = is_array($col) ? $col['name'] : $col;
+            $row[] = in_array($colName, $userColumns) ? 'X' : '';
         }
         $csv[] = implode(',', $row);
     }
