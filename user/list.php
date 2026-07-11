@@ -82,17 +82,18 @@ include __DIR__ . '/../includes/header.php';
                     $usersInColumn = [];
                     
                     // Récupérer tous les utilisateurs inscrits à cette colonne
-                    foreach ($registrations as $name => $userCols) {
+                    foreach ($registrations as $name => $userCols):
                         if (in_array($column, $userCols)) {
                             $usersInColumn[] = htmlspecialchars($name);
                         }
-                    }
+                    endforeach;
                     
                     // Déterminer si on affiche un séparateur de titre (toutes les 5 lignes par exemple)
                     $showTitleSeparator = ($index % 5 == 0 && $index > 0);
                     
                     if ($showTitleSeparator):
                         echo '<tr class="title-separator"><td colspan="2"><hr></td></tr>';
+                    endif;
                     
                     echo '<tr class="column-row" data-column="' . htmlspecialchars($column) . '">';
                     
