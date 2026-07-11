@@ -18,6 +18,19 @@ if (!$list) {
     redirect(url('user/index.php'));
 }
 
+// Vérifier si la liste est active
+if (!($list['is_active'] ?? true)) {
+    include __DIR__ . '/../includes/header.php';
+    echo '<div class="container">';
+    echo '<div class="alert alert-error">';
+    echo '<h2>Liste fermée</h2>';
+    echo '<p>Cette liste ("' . htmlspecialchars($list['name']) . '") est actuellement fermée et n\'est pas accessible.</p>';
+    echo '<p><a href="' . url('user/index.php') . '" class="btn btn-primary">Retour à la liste des événements</a></p>';
+    echo '</div>';
+    include __DIR__ . '/../includes/footer.php';
+    exit();
+}
+
 // Vérifier l'accès à la liste (mot de passe)
 if (!empty($list['password']) && !isset($_SESSION['list_access_' . $listId])) {
     redirect(url('user/auth.php?id=' . $listId));
@@ -29,6 +42,7 @@ $sessionKey = 'list_user_name_' . $listId;
 $userName = isset($_SESSION[$sessionKey]) ? $_SESSION[$sessionKey] : '';
 
 $nameWarning = '';
+$isReadOnly = $list['is_readonly'] ?? false;
 
 // Gérer la soumission du nom d'utilisateur directement sur la page de liste
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['set_user_name'])) {
@@ -49,46 +63,48 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['set_user_name'])) {
     }
 }
 
-// Gérer les inscriptions/désinscriptions
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['column'])) {
-    if (!empty($userName)) {
-        // Clic sur une case : ajouter/supprimer l'inscription
-        $column = sanitizeInput($_POST['column']);
-        
-        // Vérifier que la colonne existe dans la liste
-        $columnExists = false;
-        foreach ($list['columns'] as $col) {
-            $colName = is_array($col) ? $col['name'] : $col;
-            if ($colName === $column) {
-                $columnExists = true;
-                break;
+// Gérer les inscriptions/désinscriptions (uniquement si la liste n'est pas en lecture seule)
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && !$isReadOnly) {
+    if (isset($_POST['column'])) {
+        if (!empty($userName)) {
+            // Clic sur une case : ajouter/supprimer l'inscription
+            $column = sanitizeInput($_POST['column']);
+            
+            // Vérifier que la colonne existe dans la liste
+            $columnExists = false;
+            foreach ($list['columns'] as $col) {
+                $colName = is_array($col) ? $col['name'] : $col;
+                if ($colName === $column) {
+                    $columnExists = true;
+                    break;
+                }
+            }
+            if ($columnExists) {
+                registerUser($listId, $userName, $column);
             }
         }
-        if ($columnExists) {
-            registerUser($listId, $userName, $column);
-        }
+        redirect(url('user/list.php?id=' . $listId));
     }
-    redirect(url('user/list.php?id=' . $listId));
-}
-
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['remove_column'])) {
-    if (!empty($userName)) {
-        // Clic sur une ligne : supprimer l'inscription
-        $column = sanitizeInput($_POST['remove_column']);
-        
-        $columnExists = false;
-        foreach ($list['columns'] as $col) {
-            $colName = is_array($col) ? $col['name'] : $col;
-            if ($colName === $column) {
-                $columnExists = true;
-                break;
+    
+    if (isset($_POST['remove_column'])) {
+        if (!empty($userName)) {
+            // Clic sur une ligne : supprimer l'inscription
+            $column = sanitizeInput($_POST['remove_column']);
+            
+            $columnExists = false;
+            foreach ($list['columns'] as $col) {
+                $colName = is_array($col) ? $col['name'] : $col;
+                if ($colName === $column) {
+                    $columnExists = true;
+                    break;
+                }
+            }
+            if ($columnExists) {
+                registerUser($listId, $userName, $column);
             }
         }
-        if ($columnExists) {
-            registerUser($listId, $userName, $column);
-        }
+        redirect(url('user/list.php?id=' . $listId));
     }
-    redirect(url('user/list.php?id=' . $listId));
 }
 
 // Charger les inscriptions si l'utilisateur a un nom
@@ -139,6 +155,12 @@ include __DIR__ . '/../includes/header.php';
         </div>
     <?php endif; ?>
     
+    <?php if ($isReadOnly && !empty($userName)): ?>
+        <div class="alert alert-info">
+            <strong>ⓘ Mode lecture seule</strong> : Vous pouvez voir les inscriptions mais ne pas les modifier.
+        </div>
+    <?php endif; ?>
+    
     <?php if (empty($userName)): ?>
         <!-- Formulaire pour saisir le nom en haut de la liste -->
         <div class="name-input-container">
@@ -159,7 +181,7 @@ include __DIR__ . '/../includes/header.php';
         </div>
         
         <div class="alert alert-info">
-            Veuillez entrer votre nom pour pouvoir vous inscrire aux événements de cette liste.
+            Veuillez entrer votre nom pour pouvoir voir les inscriptions de cette liste.
         </div>
     <?php else: ?>
         <!-- Affichage normal de la liste -->
@@ -192,24 +214,30 @@ include __DIR__ . '/../includes/header.php';
                     
                     // Cellule de l'entrée (colonne)
                     echo '<td class="column-name">';
-                    echo '<form method="post" action="' . url('user/list.php?id=' . $listId) . '" style="margin: 0;">';
-                    echo '<input type="hidden" name="remove_column" value="' . htmlspecialchars($columnName) . '">';
-                    echo '<button type="submit" class="column-name-btn" style="background: none; border: none; text-align: left; width: 100%; cursor: pointer;">';
-                    echo htmlspecialchars($columnName);
-                    echo '</button>';
-                    echo '</form>';
+                    if (!$isReadOnly) {
+                        echo '<form method="post" action="' . url('user/list.php?id=' . $listId) . '" style="margin: 0;">';
+                        echo '<input type="hidden" name="remove_column" value="' . htmlspecialchars($columnName) . '">';
+                        echo '<button type="submit" class="column-name-btn" style="background: none; border: none; text-align: left; width: 100%; cursor: pointer;">';
+                        echo htmlspecialchars($columnName);
+                        echo '</button>';
+                        echo '</form>';
+                    } else {
+                        echo '<span style="display: block; padding: 12px 15px;">' . htmlspecialchars($columnName) . '</span>';
+                    }
                     echo '</td>';
                     
                     // Cellule des inscriptions
                     echo '<td class="users-cell">';
                     
-                    // Case à cocher pour s'inscrire
-                    echo '<form method="post" action="' . url('user/list.php?id=' . $listId) . '" style="margin: 0; display: inline-block;">';
-                    echo '<input type="hidden" name="column" value="' . htmlspecialchars($columnName) . '">';
-                    echo '<button type="submit" class="cell-btn ' . ($isRegistered ? 'registered' : '') . '">';
-                    echo $isRegistered ? '✓' : '+';
-                    echo '</button>';
-                    echo '</form>';
+                    if (!$isReadOnly) {
+                        // Case à cocher pour s'inscrire
+                        echo '<form method="post" action="' . url('user/list.php?id=' . $listId) . '" style="margin: 0; display: inline-block;">';
+                        echo '<input type="hidden" name="column" value="' . htmlspecialchars($columnName) . '">';
+                        echo '<button type="submit" class="cell-btn ' . ($isRegistered ? 'registered' : '') . '">';
+                        echo $isRegistered ? '✓' : '+';
+                        echo '</button>';
+                        echo '</form>';
+                    }
                     
                     // Afficher les bulles avec les noms des utilisateurs inscrits
                     if (!empty($usersInColumn)):
@@ -235,8 +263,10 @@ include __DIR__ . '/../includes/header.php';
         <div class="mt-2 legend">
             <p><strong>Légende :</strong></p>
             <ul>
-                <li><span class="legend-mark registered">✓</span> = Vous êtes inscrit</li>
-                <li><span class="legend-mark">+</span> = Cliquez pour vous inscrire</li>
+                <?php if (!$isReadOnly): ?>
+                    <li><span class="legend-mark registered">✓</span> = Vous êtes inscrit</li>
+                    <li><span class="legend-mark">+</span> = Cliquez pour vous inscrire</li>
+                <?php endif; ?>
                 <li><span class="user-bubble">Nom</span> = Utilisateur inscrit (chaque utilisateur a sa propre couleur)</li>
             </ul>
         </div>

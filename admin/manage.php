@@ -53,6 +53,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $password = isset($_POST['password']) ? trim($_POST['password']) : null;
         $description = isset($_POST['description']) ? trim($_POST['description']) : null;
         
+        // Récupérer les options de configuration
+        $isActive = isset($_POST['is_active']) ? true : false;
+        $isVisible = isset($_POST['is_visible']) ? true : false;
+        $isReadOnly = isset($_POST['is_readonly']) ? true : false;
+        
         // Récupérer les colonnes et catégories depuis le formulaire
         $columns = [];
         $categories = isset($_POST['category']) ? $_POST['category'] : [];
@@ -85,7 +90,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         } else {
             if ($action === 'add') {
                 // Ajouter une nouvelle liste
-                $newId = addList($name, $columns, $password, $description);
+                $newId = addList($name, $columns, $password, $description, $isActive, $isVisible, $isReadOnly);
                 if ($newId) {
                     $success = 'Liste créée avec succès !';
                     $listToEdit = null; // Réinitialiser le formulaire
@@ -94,7 +99,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
             } elseif ($action === 'edit' && $listId > 0) {
                 // Modifier une liste existante
-                if (updateList($listId, $name, $columns, $password, $description)) {
+                if (updateList($listId, $name, $columns, $password, $description, $isActive, $isVisible, $isReadOnly)) {
                     $success = 'Liste mise à jour avec succès !';
                     $listToEdit = getListById($listId); // Recharger les données
                 } else {
@@ -143,19 +148,39 @@ include __DIR__ . '/../includes/header.php';
                         <tr>
                             <th>ID</th>
                             <th>Nom</th>
-                            <th>Description</th>
+                            <th>Statut</th>
+                            <th>Visible</th>
+                            <th>Lecture seule</th>
                             <th>Colonnes</th>
-                            <th>Catégories</th>
-                            <th>Mot de passe</th>
                             <th>Actions</th>
                         </tr>
                     </thead>
                     <tbody>
                         <?php foreach ($lists as $list): ?>
-                            <tr>
+                            <tr class="<?php echo !$list['is_active'] ? 'inactive-row' : ''; ?>">
                                 <td><?php echo $list['id']; ?></td>
                                 <td><?php echo htmlspecialchars($list['name']); ?></td>
-                                <td><?php echo !empty($list['description']) ? nl2br(htmlspecialchars(substr($list['description'], 0, 50)) . (strlen($list['description']) > 50 ? '...' : '')) : '<span class="badge badge-info">Aucune</span>'; ?></td>
+                                <td>
+                                    <?php if ($list['is_active']): ?>
+                                        <span class="badge badge-success">Active</span>
+                                    <?php else: ?>
+                                        <span class="badge badge-danger">Fermée</span>
+                                    <?php endif; ?>
+                                </td>
+                                <td>
+                                    <?php if ($list['is_visible']): ?>
+                                        <span class="badge badge-success">Oui</span>
+                                    <?php else: ?>
+                                        <span class="badge badge-warning">Non</span>
+                                    <?php endif; ?>
+                                </td>
+                                <td>
+                                    <?php if ($list['is_readonly']): ?>
+                                        <span class="badge badge-info">Oui</span>
+                                    <?php else: ?>
+                                        <span class="badge badge-secondary">Non</span>
+                                    <?php endif; ?>
+                                </td>
                                 <td><?php 
                                     $colCount = 0;
                                     if (!empty($list['columns'])) {
@@ -167,28 +192,16 @@ include __DIR__ . '/../includes/header.php';
                                     }
                                     echo $colCount;
                                     ?></td>
-                                <td><?php 
-                                    $catCount = 0;
-                                    if (!empty($list['columns']) && isset($list['columns'][0]['category'])) {
-                                        $categories = array_unique(array_column($list['columns'], 'category'));
-                                        $catCount = count(array_filter($categories));
-                                        echo $catCount > 0 ? $catCount : 'Aucune';
-                                    } else {
-                                        echo 'Aucune';
-                                    }
-                                    ?></td>
-                                <td>
-                                    <?php echo !empty($list['password']) ? '<span class="badge badge-warning">Oui</span>' : '<span class="badge badge-success">Non</span>'; ?>
-                                </td>
                                 <td>
                                     <a href="<?php echo url('admin/manage.php?edit=' . $list['id']); ?>" class="btn btn-small btn-edit">Modifier</a>
-                                    <a href="<?php echo url('admin/manage.php?delete=' . $list['id']); ?>" class="btn btn-small btn-delete" onclick="return confirm('Êtes-vous sûr de vouloir supprimer cette liste ?');">Supprimer</a>
+                                    <a href="<?php echo url('admin/manage.php?delete=' . $list['id']); ?>&csrf_token=<?php echo generateCsrfToken(); ?>" class="btn btn-small btn-delete" onclick="return confirm('Êtes-vous sûr de vouloir supprimer cette liste ?');">Supprimer</a>
                                 </td>
                             </tr>
                         <?php endforeach; ?>
                     </tbody>
                 </table>
             </div>
+            <p><small>Légende : <span class="badge badge-success">Active</span> = Liste ouverte, <span class="badge badge-danger">Fermée</span> = Liste fermée, <span class="badge badge-warning">Non</span> = Masquée, <span class="badge badge-info">Oui</span> = Lecture seule</small></p>
         <?php endif; ?>
         
         <hr>
@@ -228,6 +241,34 @@ include __DIR__ . '/../includes/header.php';
                 <input type="text" id="password" name="password" placeholder="Laisser vide pour aucun mot de passe">
                 <small>Si vous définissez un mot de passe, les utilisateurs devront le saisir pour accéder à cette liste.</small>
             </div>
+            
+            <fieldset class="form-group">
+                <legend>Options de la liste</legend>
+                
+                <div class="checkbox-group">
+                    <label>
+                        <input type="checkbox" name="is_active" value="1" checked>
+                        <strong>Liste active</strong>
+                    </label>
+                    <small>Si décoché, les utilisateurs ne pourront pas accéder à cette liste.</small>
+                </div>
+                
+                <div class="checkbox-group">
+                    <label>
+                        <input type="checkbox" name="is_visible" value="1" checked>
+                        <strong>Liste visible</strong>
+                    </label>
+                    <small>Si décoché, la liste ne sera pas affichée dans la liste des événements (mais accessible via lien direct).</small>
+                </div>
+                
+                <div class="checkbox-group">
+                    <label>
+                        <input type="checkbox" name="is_readonly" value="1">
+                        <strong>Lecture seule</strong>
+                    </label>
+                    <small>Si coché, les utilisateurs pourront voir les inscriptions mais ne pourront pas modifier.</small>
+                </div>
+            </fieldset>
             
             <button type="submit" class="btn btn-primary">Créer la liste</button>
             <button type="reset" class="btn btn-secondary">Réinitialiser</button>
@@ -290,6 +331,34 @@ include __DIR__ . '/../includes/header.php';
                 <small>Si vous voulez supprimer le mot de passe, laissez ce champ vide.</small>
             </div>
             
+            <fieldset class="form-group">
+                <legend>Options de la liste</legend>
+                
+                <div class="checkbox-group">
+                    <label>
+                        <input type="checkbox" name="is_active" value="1" <?php echo ($listToEdit['is_active'] ?? true) ? 'checked' : ''; ?>>
+                        <strong>Liste active</strong>
+                    </label>
+                    <small>Si décoché, les utilisateurs ne pourront pas accéder à cette liste.</small>
+                </div>
+                
+                <div class="checkbox-group">
+                    <label>
+                        <input type="checkbox" name="is_visible" value="1" <?php echo ($listToEdit['is_visible'] ?? true) ? 'checked' : ''; ?>>
+                        <strong>Liste visible</strong>
+                    </label>
+                    <small>Si décoché, la liste ne sera pas affichée dans la liste des événements (mais accessible via lien direct).</small>
+                </div>
+                
+                <div class="checkbox-group">
+                    <label>
+                        <input type="checkbox" name="is_readonly" value="1" <?php echo ($listToEdit['is_readonly'] ?? false) ? 'checked' : ''; ?>>
+                        <strong>Lecture seule</strong>
+                    </label>
+                    <small>Si coché, les utilisateurs pourront voir les inscriptions mais ne pourront pas modifier.</small>
+                </div>
+            </fieldset>
+            
             <button type="submit" class="btn btn-primary">Mettre à jour</button>
             <a href="<?php echo url('admin/manage.php'); ?>" class="btn btn-secondary">Annuler</a>
         </form>
@@ -331,6 +400,48 @@ function removeColumnRow(button) {
     padding: 6px;
     border: 1px solid #ddd;
     border-radius: 4px;
+}
+.inactive-row {
+    opacity: 0.6;
+    background-color: #f8f9fa;
+}
+.inactive-row td {
+    text-decoration: line-through;
+}
+.checkbox-group {
+    margin-bottom: 15px;
+    padding: 10px;
+    background-color: #f8f9fa;
+    border-radius: 5px;
+}
+.checkbox-group label {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    font-weight: normal;
+}
+.checkbox-group input[type="checkbox"] {
+    width: 20px;
+    height: 20px;
+    cursor: pointer;
+}
+.checkbox-group small {
+    display: block;
+    margin-top: 5px;
+    color: #666;
+    font-size: 12px;
+}
+fieldset {
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    padding: 15px;
+    margin-bottom: 20px;
+}
+fieldset legend {
+    padding: 0 5px;
+    font-weight: bold;
+    color: #4a6fa5;
 }
 </style>
 

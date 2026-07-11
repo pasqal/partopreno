@@ -21,9 +21,17 @@ if (isset($_GET['logout'])) {
 // Charger les listes
 $lists = loadLists();
 
-// Si une seule liste existe, rediriger directement vers elle
-if (count($lists) === 1) {
-    redirect(url('user/list.php?id=' . $lists[0]['id']));
+// Filtrer pour ne garder que les listes actives et visibles
+$visibleLists = [];
+foreach ($lists as $list) {
+    if (($list['is_active'] ?? true) && ($list['is_visible'] ?? true)) {
+        $visibleLists[] = $list;
+    }
+}
+
+// Si une seule liste visible existe, rediriger directement vers elle
+if (count($visibleLists) === 1) {
+    redirect(url('user/list.php?id=' . $visibleLists[0]['id']));
 }
 
 include __DIR__ . '/../includes/header.php';
@@ -33,13 +41,13 @@ include __DIR__ . '/../includes/header.php';
     <h1>Liste des événements disponibles</h1>
     <p>Sélectionnez une liste pour vous inscrire :</p>
     
-    <?php if (empty($lists)): ?>
+    <?php if (empty($visibleLists)): ?>
         <div class="alert alert-info">
             Aucune liste n'est disponible pour le moment. Veuillez revenir plus tard.
         </div>
     <?php else: ?>
         <div class="list-grid">
-            <?php foreach ($lists as $list): ?>
+            <?php foreach ($visibleLists as $list): ?>
                 <div class="list-card">
                     <h3><?php echo htmlspecialchars($list['name']); ?></h3>
                     
@@ -71,6 +79,9 @@ include __DIR__ . '/../includes/header.php';
                         <p>
                             <strong>Créé le :</strong> <?php echo date('d/m/Y H:i', strtotime($list['created_at'])); ?>
                         </p>
+                        <?php if ($list['is_readonly'] ?? false): ?>
+                            <p><span class="badge badge-info">Lecture seule</span></p>
+                        <?php endif; ?>
                     </div>
                     
                     <a href="<?php echo url('user/list.php?id=' . $list['id']); ?>" class="btn btn-primary">
