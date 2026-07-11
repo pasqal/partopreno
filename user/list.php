@@ -18,19 +18,6 @@ if (!$list) {
     redirect(url('user/index.php'));
 }
 
-// Vérifier si la liste est active
-if (!($list['is_active'] ?? true)) {
-    include __DIR__ . '/../includes/header.php';
-    echo '<div class="container">';
-    echo '<div class="alert alert-error">';
-    echo '<h2>Liste fermée</h2>';
-    echo '<p>Cette liste ("' . htmlspecialchars($list['name']) . '") est actuellement fermée et n\'est pas accessible.</p>';
-    echo '<p><a href="' . url('user/index.php') . '" class="btn btn-primary">Retour à la liste des événements</a></p>';
-    echo '</div>';
-    include __DIR__ . '/../includes/footer.php';
-    exit();
-}
-
 // Vérifier l'accès à la liste (mot de passe)
 if (!empty($list['password']) && !isset($_SESSION['list_access_' . $listId])) {
     redirect(url('user/auth.php?id=' . $listId));

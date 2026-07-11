@@ -54,7 +54,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $description = isset($_POST['description']) ? trim($_POST['description']) : null;
         
         // Récupérer les options de configuration
-        $isActive = isset($_POST['is_active']) ? true : false;
         $isVisible = isset($_POST['is_visible']) ? true : false;
         $isReadOnly = isset($_POST['is_readonly']) ? true : false;
         
@@ -90,7 +89,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         } else {
             if ($action === 'add') {
                 // Ajouter une nouvelle liste
-                $newId = addList($name, $columns, $password, $description, $isActive, $isVisible, $isReadOnly);
+                $newId = addList($name, $columns, $password, $description, $isVisible, $isReadOnly);
                 if ($newId) {
                     $success = 'Liste créée avec succès !';
                     $listToEdit = null; // Réinitialiser le formulaire
@@ -99,7 +98,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
             } elseif ($action === 'edit' && $listId > 0) {
                 // Modifier une liste existante
-                if (updateList($listId, $name, $columns, $password, $description, $isActive, $isVisible, $isReadOnly)) {
+                if (updateList($listId, $name, $columns, $password, $description, $isVisible, $isReadOnly)) {
                     $success = 'Liste mise à jour avec succès !';
                     $listToEdit = getListById($listId); // Recharger les données
                 } else {
@@ -148,7 +147,6 @@ include __DIR__ . '/../includes/header.php';
                         <tr>
                             <th>ID</th>
                             <th>Nom</th>
-                            <th>Statut</th>
                             <th>Visible</th>
                             <th>Lecture seule</th>
                             <th>Colonnes</th>
@@ -157,25 +155,18 @@ include __DIR__ . '/../includes/header.php';
                     </thead>
                     <tbody>
                         <?php foreach ($lists as $list): ?>
-                            <tr class="<?php echo !$list['is_active'] ? 'inactive-row' : ''; ?>">
+                            <tr>
                                 <td><?php echo $list['id']; ?></td>
                                 <td><?php echo htmlspecialchars($list['name']); ?></td>
                                 <td>
-                                    <?php if ($list['is_active']): ?>
-                                        <span class="badge badge-success">Active</span>
-                                    <?php else: ?>
-                                        <span class="badge badge-danger">Fermée</span>
-                                    <?php endif; ?>
-                                </td>
-                                <td>
-                                    <?php if ($list['is_visible']): ?>
+                                    <?php if ($list['is_visible'] ?? true): ?>
                                         <span class="badge badge-success">Oui</span>
                                     <?php else: ?>
                                         <span class="badge badge-warning">Non</span>
                                     <?php endif; ?>
                                 </td>
                                 <td>
-                                    <?php if ($list['is_readonly']): ?>
+                                    <?php if ($list['is_readonly'] ?? false): ?>
                                         <span class="badge badge-info">Oui</span>
                                     <?php else: ?>
                                         <span class="badge badge-secondary">Non</span>
@@ -201,7 +192,7 @@ include __DIR__ . '/../includes/header.php';
                     </tbody>
                 </table>
             </div>
-            <p><small>Légende : <span class="badge badge-success">Active</span> = Liste ouverte, <span class="badge badge-danger">Fermée</span> = Liste fermée, <span class="badge badge-warning">Non</span> = Masquée, <span class="badge badge-info">Oui</span> = Lecture seule</small></p>
+            <p><small>Légende : <span class="badge badge-success">Oui</span> = Visible/Modifiable, <span class="badge badge-warning">Non</span> = Masquée, <span class="badge badge-info">Oui</span> = Lecture seule</small></p>
         <?php endif; ?>
         
         <hr>
@@ -244,14 +235,6 @@ include __DIR__ . '/../includes/header.php';
             
             <fieldset class="form-group">
                 <legend>Options de la liste</legend>
-                
-                <div class="checkbox-group">
-                    <label>
-                        <input type="checkbox" name="is_active" value="1" checked>
-                        <strong>Liste active</strong>
-                    </label>
-                    <small>Si décoché, les utilisateurs ne pourront pas accéder à cette liste.</small>
-                </div>
                 
                 <div class="checkbox-group">
                     <label>
@@ -336,14 +319,6 @@ include __DIR__ . '/../includes/header.php';
                 
                 <div class="checkbox-group">
                     <label>
-                        <input type="checkbox" name="is_active" value="1" <?php echo ($listToEdit['is_active'] ?? true) ? 'checked' : ''; ?>>
-                        <strong>Liste active</strong>
-                    </label>
-                    <small>Si décoché, les utilisateurs ne pourront pas accéder à cette liste.</small>
-                </div>
-                
-                <div class="checkbox-group">
-                    <label>
                         <input type="checkbox" name="is_visible" value="1" <?php echo ($listToEdit['is_visible'] ?? true) ? 'checked' : ''; ?>>
                         <strong>Liste visible</strong>
                     </label>
@@ -400,13 +375,6 @@ function removeColumnRow(button) {
     padding: 6px;
     border: 1px solid #ddd;
     border-radius: 4px;
-}
-.inactive-row {
-    opacity: 0.6;
-    background-color: #f8f9fa;
-}
-.inactive-row td {
-    text-decoration: line-through;
 }
 .checkbox-group {
     margin-bottom: 15px;

@@ -106,12 +106,11 @@ function normalizeColumns($columns) {
  * @param array $columns Tableau des colonnes (noms des lignes/événements)
  * @param string|null $password Mot de passe (optionnel)
  * @param string|null $description Description de la liste (optionnel)
- * @param bool $isActive Si la liste est active
  * @param bool $isVisible Si la liste est visible
  * @param bool $isReadOnly Si la liste est en lecture seule
  * @return int|false ID de la nouvelle liste ou false en cas d'erreur
  */
-function addList($name, $columns, $password = null, $description = null, $isActive = true, $isVisible = true, $isReadOnly = false) {
+function addList($name, $columns, $password = null, $description = null, $isVisible = true, $isReadOnly = false) {
     $lists = loadLists();
     
     // Générer un ID unique
@@ -132,7 +131,6 @@ function addList($name, $columns, $password = null, $description = null, $isActi
         'password' => $password,
         'description' => $description,
         'columns' => $normalizedColumns,
-        'is_active' => $isActive,
         'is_visible' => $isVisible,
         'is_readonly' => $isReadOnly,
         'created_at' => date('Y-m-d H:i:s')
@@ -155,14 +153,13 @@ function addList($name, $columns, $password = null, $description = null, $isActi
  * @param int $id ID de la liste
  * @param string $name Nom de la liste
  * @param array $columns Tableau des colonnes
- * @param string|null $password Mot de passe (null pour supprimer)
- * @param string|null $description Description de la liste (null pour supprimer)
- * @param bool|null $isActive Si la liste est active (null pour ne pas changer)
+ * @param string|null $password Mot de passe (null pour ne pas changer)
+ * @param string|null $description Description de la liste (null pour ne pas changer)
  * @param bool|null $isVisible Si la liste est visible (null pour ne pas changer)
  * @param bool|null $isReadOnly Si la liste est en lecture seule (null pour ne pas changer)
  * @return bool Succès ou échec
  */
-function updateList($id, $name, $columns, $password = null, $description = null, $isActive = null, $isVisible = null, $isReadOnly = null) {
+function updateList($id, $name, $columns, $password = null, $description = null, $isVisible = null, $isReadOnly = null) {
     $lists = loadLists();
     $found = false;
     
@@ -178,9 +175,6 @@ function updateList($id, $name, $columns, $password = null, $description = null,
             }
             if ($description !== null) {
                 $list['description'] = $description;
-            }
-            if ($isActive !== null) {
-                $list['is_active'] = $isActive;
             }
             if ($isVisible !== null) {
                 $list['is_visible'] = $isVisible;
@@ -401,8 +395,8 @@ function importListFromCSV($filePath) {
         return false;
     }
     
-    // Ajouter la liste (active et visible par défaut)
-    $listId = addList($listName, $columns, null, null, true, true, false);
+    // Ajouter la liste (visible et modifiable par défaut)
+    $listId = addList($listName, $columns, null, null, true, false);
     
     if ($listId === false) {
         return false;
