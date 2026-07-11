@@ -69,7 +69,7 @@ include __DIR__ . '/../includes/header.php';
     <div class="header-flex">
         <h1>Importer une liste</h1>
         <div>
-            <a href="index.php" class="btn btn-secondary">← Retour au tableau de bord</a>
+            <a href="<?php echo BASE_URL; ?>admin/" class="btn btn-secondary">← Retour au tableau de bord</a>
         </div>
     </div>
     
@@ -110,13 +110,6 @@ Exemple,Ligne 1,Ligne 2,Ligne 3</code></pre>
         <button type="submit" class="btn btn-primary">Importer</button>
         <button type="reset" class="btn btn-secondary">Réinitialiser</button>
     </form>
-    
-    <div class="mt-2">
-        <p>
-            <strong>Exemple de fichier valide :</strong><br>
-            <a href="../assets/examples/import_example.csv" class="btn btn-small btn-download" download>Télécharger un exemple CSV</a>
-        </p>
-    </div>
 </div>
 
 <?php

@@ -14,7 +14,8 @@ Options -Indexes
     
     # Bloquer l'accès direct aux fichiers JSON/CSV/TXT dans /includes/data/
     RewriteEngine On
-    RewriteCond %{REQUEST_URI} /includes/data/ [NC]
+    RewriteCond %{REQUEST_URI} /includes/data/ [NC,OR]
+    RewriteCond %{REQUEST_URI} ^/includes/data/ [NC]
     RewriteCond %{REQUEST_FILENAME} !\.php$ [NC]
     RewriteRule \.(json|csv|txt)$ - [F,L]
 </FilesMatch>
@@ -36,4 +37,4 @@ RewriteEngine On
 
 # Rediriger /inscriptions vers /inscriptions/user/
 RewriteCond %{REQUEST_URI} ^/$ [NC]
-RewriteRule ^(.*)$ /user/ [R=301,L]
+RewriteRule ^(.*)$ user/ [R=301,L]

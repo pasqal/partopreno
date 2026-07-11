@@ -18,6 +18,9 @@ define('DATA_DIR', ROOT_DIR . 'includes/data/');
 define('REGISTRATIONS_DIR', DATA_DIR . 'registrations/');
 define('LISTS_FILE', DATA_DIR . 'lists.json');
 
+// --- Base URL pour les liens ---
+define('BASE_URL', rtrim(dirname($_SERVER['SCRIPT_NAME']), '/') . '/');
+
 // --- Options ---
 // Affiche les erreurs PHP (désactivez en production)
 define('DEBUG_MODE', true);
