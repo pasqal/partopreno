@@ -8,6 +8,7 @@ require_once __DIR__ . '/../includes/functions.php';
 
 // Vérifier si l'ID de la liste est fourni
 if (!isset($_GET['id'])) {
+    // Rediriger vers la page d'accueil user si pas d'ID
     redirect(url('user/index.php'));
 }
 
@@ -18,37 +19,49 @@ if (!$list) {
     redirect(url('user/index.php'));
 }
 
-// Vérifier l'accès à la liste
+// Vérifier l'accès à la liste (mot de passe)
 if (!empty($list['password']) && !isset($_SESSION['list_access_' . $listId])) {
     redirect(url('user/auth.php?id=' . $listId));
 }
 
-// Vérifier si l'utilisateur a un nom
+// Gérer la soumission du nom d'utilisateur directement sur la page de liste
 $userName = getCurrentUserName();
-if (empty($userName)) {
-    redirect(url('user/index.php'));
-}
+$nameWarning = '';
 
-// Gérer les inscriptions/désinscriptions
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    if (isset($_POST['column'])) {
-        // Clic sur une case : ajouter/supprimer l'inscription
-        $column = sanitizeInput($_POST['column']);
-        // Vérifier que la colonne existe dans la liste
-        $columnExists = false;
-        foreach ($list['columns'] as $col) {
-            $colName = is_array($col) ? $col['name'] : $col;
-            if ($colName === $column) {
-                $columnExists = true;
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['set_user_name'])) {
+    $newUserName = sanitizeInput($_POST['set_user_name']);
+    
+    if (!empty($newUserName)) {
+        // Vérifier si le nom est déjà utilisé (juste pour information)
+        $allLists = loadLists();
+        $nameExists = false;
+        
+        foreach ($allLists as $listItem) {
+            $listIdCheck = $listItem['id'];
+            $registrations = getAllRegistrations($listIdCheck);
+            if (isset($registrations[$newUserName])) {
+                $nameExists = true;
                 break;
             }
         }
-        if ($columnExists) {
-            registerUser($listId, $userName, $column);
+        
+        if ($nameExists) {
+            $nameWarning = '⚠️ Ce nom est déjà utilisé par un autre utilisateur. Vous pouvez tout de même l\'utiliser.';
         }
-    } elseif (isset($_POST['remove_column'])) {
-        // Clic sur une ligne : supprimer l'inscription
-        $column = sanitizeInput($_POST['remove_column']);
+        
+        // Toujours accepter le nom
+        setCurrentUserName($newUserName);
+        $userName = $newUserName;
+    }
+}
+
+// Gérer les inscriptions/désinscriptions
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['column'])) {
+    if (!empty($userName)) {
+        // Clic sur une case : ajouter/supprimer l'inscription
+        $column = sanitizeInput($_POST['column']);
+        
+        // Vérifier que la colonne existe dans la liste
         $columnExists = false;
         foreach ($list['columns'] as $col) {
             $colName = is_array($col) ? $col['name'] : $col;
@@ -64,23 +77,45 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     redirect(url('user/list.php?id=' . $listId));
 }
 
-// Charger les inscriptions
-$registrations = getAllRegistrations($listId);
-$userRegistrations = isset($registrations[$userName]) ? $registrations[$userName] : [];
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['remove_column'])) {
+    if (!empty($userName)) {
+        // Clic sur une ligne : supprimer l'inscription
+        $column = sanitizeInput($_POST['remove_column']);
+        
+        $columnExists = false;
+        foreach ($list['columns'] as $col) {
+            $colName = is_array($col) ? $col['name'] : $col;
+            if ($colName === $column) {
+                $columnExists = true;
+                break;
+            }
+        }
+        if ($columnExists) {
+            registerUser($listId, $userName, $column);
+        }
+    }
+    redirect(url('user/list.php?id=' . $listId));
+}
+
+// Charger les inscriptions si l'utilisateur a un nom
+$registrations = [];
+$userRegistrations = [];
+if (!empty($userName)) {
+    $registrations = getAllRegistrations($listId);
+    $userRegistrations = isset($registrations[$userName]) ? $registrations[$userName] : [];
+}
 
 // Organiser les colonnes par catégorie
 $columnsByCategory = getColumnsByCategory($list);
 
 // Fonction pour générer une couleur unique pour un utilisateur
 function getUserColor($username) {
-    // Générer une couleur basée sur le nom d'utilisateur pour qu'elle soit toujours la même
     $colors = [
         '#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7',
         '#DDA0DD', '#98D8C8', '#F7DC6F', '#BB8FCE', '#85C1E2',
         '#F8B739', '#52B788', '#FF9AA2', '#5DADE2', '#F4D03F'
     ];
     
-    // Utiliser le hash du nom pour sélectionner une couleur
     $hash = crc32($username);
     $index = abs($hash) % count($colors);
     return $colors[$index];
@@ -92,9 +127,12 @@ include __DIR__ . '/../includes/header.php';
 <div class="container">
     <div class="header-flex">
         <h1><?php echo htmlspecialchars($list['name']); ?></h1>
-        <div class="user-info">
-            <span>Connecté en tant que : <strong><?php echo htmlspecialchars($userName); ?></strong></span>
-        </div>
+        
+        <?php if (!empty($userName)): ?>
+            <div class="user-info">
+                <span>Connecté en tant que : <strong><?php echo htmlspecialchars($userName); ?></strong></span>
+            </div>
+        <?php endif; ?>
     </div>
     
     <p>
@@ -107,83 +145,108 @@ include __DIR__ . '/../includes/header.php';
         </div>
     <?php endif; ?>
     
-    <div class="registration-container">
-        <?php
-        // Afficher chaque catégorie
-        foreach ($columnsByCategory as $category => $columns):
-            // Afficher le titre de la catégorie si elle existe
-            if (!empty($category)):
-                echo '<h3 class="category-title">' . htmlspecialchars($category) . '</h3>';
-            endif;
-            
-            // Tableau pour cette catégorie
-            echo '<table class="registration-table">';
-            echo '<tbody>';
-            
-            foreach ($columns as $col):
-                $columnName = $col['name'];
-                $isRegistered = in_array($columnName, $userRegistrations);
-                $usersInColumn = [];
-                
-                // Récupérer tous les utilisateurs inscrits à cette colonne
-                foreach ($registrations as $name => $userCols) {
-                    if (in_array($columnName, $userCols)) {
-                        $usersInColumn[] = $name;
-                    }
-                }
-                
-                echo '<tr class="column-row" data-column="' . htmlspecialchars($columnName) . '">';
-                
-                // Cellule de l'entrée (colonne)
-                echo '<td class="column-name">';
-                echo '<form method="post" action="' . url('user/list.php?id=' . $listId) . '" style="margin: 0;">';
-                echo '<input type="hidden" name="remove_column" value="' . htmlspecialchars($columnName) . '">';
-                echo '<button type="submit" class="column-name-btn" style="background: none; border: none; text-align: left; width: 100%; cursor: pointer;">';
-                echo htmlspecialchars($columnName);
-                echo '</button>';
-                echo '</form>';
-                echo '</td>';
-                
-                // Cellule des inscriptions
-                echo '<td class="users-cell">';
-                
-                // Case à cocher pour s'inscrire
-                echo '<form method="post" action="' . url('user/list.php?id=' . $listId) . '" style="margin: 0; display: inline-block;">';
-                echo '<input type="hidden" name="column" value="' . htmlspecialchars($columnName) . '">';
-                echo '<button type="submit" class="cell-btn ' . ($isRegistered ? 'registered' : '') . '">';
-                echo $isRegistered ? '✓' : '+';
-                echo '</button>';
-                echo '</form>';
-                
-                // Afficher les bulles avec les noms des utilisateurs inscrits
-                if (!empty($usersInColumn)):
-                    echo '<div class="users-bubbles">';
-                    foreach ($usersInColumn as $name):
-                        $isCurrentUser = ($name === $userName);
-                        $userColor = getUserColor($name);
-                        echo '<span class="user-bubble" style="background-color: ' . $userColor . ';">' . htmlspecialchars($name) . '</span>';
-                    endforeach;
-                    echo '</div>';
+    <?php if (empty($userName)): ?>
+        <!-- Formulaire pour saisir le nom en haut de la liste -->
+        <div class="name-input-container">
+            <form method="post" action="" class="name-form">
+                <div class="form-group name-group">
+                    <label for="set_user_name">Votre nom *</label>
+                    <div class="input-with-warning">
+                        <input type="text" id="set_user_name" name="set_user_name" placeholder="Entrez votre nom" required autofocus>
+                        <button type="submit" class="btn btn-primary">Valider</button>
+                    </div>
+                    <?php if (!empty($nameWarning)): ?>
+                        <div class="alert alert-warning name-warning">
+                            <?php echo $nameWarning; ?>
+                        </div>
+                    <?php endif; ?>
+                </div>
+            </form>
+        </div>
+        
+        <div class="alert alert-info">
+            Veuillez entrer votre nom pour pouvoir vous inscrire aux événements.
+        </div>
+    <?php else: ?>
+        <!-- Affichage normal de la liste -->
+        <div class="registration-container">
+            <?php
+            // Afficher chaque catégorie
+            foreach ($columnsByCategory as $category => $columns):
+                // Afficher le titre de la catégorie si elle existe
+                if (!empty($category)):
+                    echo '<h3 class="category-title">' . htmlspecialchars($category) . '</h3>';
                 endif;
                 
-                echo '</td>';
-                echo '</tr>';
+                // Tableau pour cette catégorie
+                echo '<table class="registration-table">';
+                echo '<tbody>';
+                
+                foreach ($columns as $col):
+                    $columnName = $col['name'];
+                    $isRegistered = in_array($columnName, $userRegistrations);
+                    $usersInColumn = [];
+                    
+                    // Récupérer tous les utilisateurs inscrits à cette colonne
+                    foreach ($registrations as $name => $userCols) {
+                        if (in_array($columnName, $userCols)) {
+                            $usersInColumn[] = $name;
+                        }
+                    }
+                    
+                    echo '<tr class="column-row" data-column="' . htmlspecialchars($columnName) . '">';
+                    
+                    // Cellule de l'entrée (colonne)
+                    echo '<td class="column-name">';
+                    echo '<form method="post" action="' . url('user/list.php?id=' . $listId) . '" style="margin: 0;">';
+                    echo '<input type="hidden" name="remove_column" value="' . htmlspecialchars($columnName) . '">';
+                    echo '<button type="submit" class="column-name-btn" style="background: none; border: none; text-align: left; width: 100%; cursor: pointer;">';
+                    echo htmlspecialchars($columnName);
+                    echo '</button>';
+                    echo '</form>';
+                    echo '</td>';
+                    
+                    // Cellule des inscriptions
+                    echo '<td class="users-cell">';
+                    
+                    // Case à cocher pour s'inscrire
+                    echo '<form method="post" action="' . url('user/list.php?id=' . $listId) . '" style="margin: 0; display: inline-block;">';
+                    echo '<input type="hidden" name="column" value="' . htmlspecialchars($columnName) . '">';
+                    echo '<button type="submit" class="cell-btn ' . ($isRegistered ? 'registered' : '') . '">';
+                    echo $isRegistered ? '✓' : '+';
+                    echo '</button>';
+                    echo '</form>';
+                    
+                    // Afficher les bulles avec les noms des utilisateurs inscrits
+                    if (!empty($usersInColumn)):
+                        echo '<div class="users-bubbles">';
+                        foreach ($usersInColumn as $name):
+                            $isCurrentUser = ($name === $userName);
+                            $userColor = getUserColor($name);
+                            echo '<span class="user-bubble" style="background-color: ' . $userColor . ';">' . htmlspecialchars($name) . '</span>';
+                        endforeach;
+                        echo '</div>';
+                    endif;
+                    
+                    echo '</td>';
+                    echo '</tr>';
+                endforeach;
+                
+                echo '</tbody>';
+                echo '</table>';
             endforeach;
-            
-            echo '</tbody>';
-            echo '</table>';
-        endforeach;
-        ?>
-    </div>
-    
-    <div class="mt-2 legend">
-        <p><strong>Légende :</strong></p>
-        <ul>
-            <li><span class="legend-mark registered">✓</span> = Vous êtes inscrit</li>
-            <li><span class="legend-mark">+</span> = Cliquez pour vous inscrire</li>
-            <li><span class="user-bubble">Nom</span> = Utilisateur inscrit (chaque utilisateur a sa propre couleur)</li>
-        </ul>
-    </div>
+            ?>
+        </div>
+        
+        <div class="mt-2 legend">
+            <p><strong>Légende :</strong></p>
+            <ul>
+                <li><span class="legend-mark registered">✓</span> = Vous êtes inscrit</li>
+                <li><span class="legend-mark">+</span> = Cliquez pour vous inscrire</li>
+                <li><span class="user-bubble">Nom</span> = Utilisateur inscrit (chaque utilisateur a sa propre couleur)</li>
+            </ul>
+        </div>
+    <?php endif; ?>
 </div>
 
 <style>
@@ -225,6 +288,47 @@ include __DIR__ . '/../includes/header.php';
         border-bottom: 2px solid #4a6fa5;
         padding-bottom: 8px;
         margin: 20px 0 10px 0;
+    }
+    
+    /* Style pour le formulaire de nom */
+    .name-input-container {
+        margin: 20px 0;
+        padding: 20px;
+        background-color: #f8f9fa;
+        border-radius: 8px;
+        border: 2px dashed #ddd;
+    }
+    .name-form {
+        max-width: 500px;
+    }
+    .name-group {
+        margin-bottom: 0;
+    }
+    .name-group label {
+        display: block;
+        margin-bottom: 8px;
+        font-weight: bold;
+    }
+    .input-with-warning {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+    }
+    .input-with-warning input {
+        flex: 1;
+        padding: 10px;
+        border: 2px solid #ddd;
+        border-radius: 4px;
+        font-size: 16px;
+    }
+    .input-with-warning input:focus {
+        outline: none;
+        border-color: #4a6fa5;
+    }
+    .name-warning {
+        margin-top: 10px;
+        padding: 8px 12px;
+        font-size: 14px;
     }
 </style>
 

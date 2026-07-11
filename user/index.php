@@ -25,7 +25,6 @@ if (empty($userName)) {
         
         // Vérifier si le nom est déjà utilisé (juste pour information)
         if (!empty($newUserName)) {
-            // Charger toutes les inscriptions pour vérifier les noms existants
             $allLists = loadLists();
             $nameExists = false;
             
@@ -38,20 +37,11 @@ if (empty($userName)) {
                 }
             }
             
-            // Vérifier aussi dans les cookies/sessions
-            if (!$nameExists) {
-                // Vérifier si un autre utilisateur utilise ce nom dans la session
-                // (on ne peut pas vérifier les sessions des autres utilisateurs, mais on peut vérifier les cookies)
-                if (isset($_COOKIE['user_name']) && $_COOKIE['user_name'] === $newUserName) {
-                    $nameExists = true;
-                }
-            }
-            
             if ($nameExists) {
-                $warning = '⚠️ Ce nom est déjà utilisé par un autre utilisateur. Vous pouvez tout de même l\'utiliser, mais vous serez identifié avec le même nom.';
+                $warning = '⚠️ Ce nom est déjà utilisé par un autre utilisateur. Vous pouvez tout de même l\'utiliser.';
             }
             
-            // Toujours accepter le nom, même s'il est déjà utilisé
+            // Toujours accepter le nom
             setCurrentUserName($newUserName);
             redirect(url('user/index.php'));
         }
@@ -79,11 +69,22 @@ if (empty($userName)) {
 // Charger les listes
 $lists = loadLists();
 
+// Si une seule liste existe, rediriger directement vers elle
+if (count($lists) === 1) {
+    redirect(url('user/list.php?id=' . $lists[0]['id']));
+}
+
 include __DIR__ . '/../includes/header.php';
 ?>
 
 <div class="container">
-    <h1>Bonjour, <?php echo htmlspecialchars($userName); ?> !</h1>
+    <div class="header-flex">
+        <h1>Bonjour, <?php echo htmlspecialchars($userName); ?> !</h1>
+        <div class="user-info">
+            <span>Connecté en tant que : <strong><?php echo htmlspecialchars($userName); ?></strong></span>
+        </div>
+    </div>
+    
     <p>Voici les listes disponibles pour vous inscrire :</p>
     
     <?php if (empty($lists)): ?>
@@ -132,12 +133,33 @@ include __DIR__ . '/../includes/header.php';
                 </div>
             <?php endforeach; ?>
         </div>
+        
+        <div class="direct-access-info">
+            <p><strong>Accès direct :</strong> Vous pouvez aussi accéder directement à une liste en utilisant l'URL : <code><?php echo htmlspecialchars($_SERVER['HTTP_HOST'] . url('user/list.php?id=X')); ?></code></p>
+            <p>Remplacez X par l'ID de la liste.</p>
+        </div>
     <?php endif; ?>
     
     <div class="mt-2">
         <a href="<?php echo url('user/?logout=1'); ?>" class="btn btn-secondary">Changer de nom</a>
     </div>
 </div>
+
+<style>
+    .direct-access-info {
+        margin-top: 30px;
+        padding: 15px;
+        background-color: #f0f0f0;
+        border-radius: 5px;
+        font-size: 14px;
+    }
+    .direct-access-info code {
+        background-color: white;
+        padding: 2px 6px;
+        border-radius: 3px;
+        font-family: monospace;
+    }
+</style>
 
 <?php
 include __DIR__ . '/../includes/footer.php';
