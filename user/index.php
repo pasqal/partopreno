@@ -8,13 +8,47 @@ require_once __DIR__ . '/../includes/functions.php';
 
 // Vérifier si l'utilisateur a un nom
 $userName = getCurrentUserName();
+
+// Gérer la déconnexion
+if (isset($_GET['logout'])) {
+    unset($_SESSION['user_name']);
+    setcookie('user_name', '', time() - 3600, '/');
+    redirect(url('user/index.php'));
+}
+
+// Gérer la soumission du nom d'utilisateur
 if (empty($userName)) {
-    // Demander un nom d'utilisateur
+    $error = '';
+    
     if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['user_name'])) {
-        $userName = sanitizeInput($_POST['user_name']);
-        if (!empty($userName)) {
-            setCurrentUserName($userName);
-            redirect(url('user/index.php'));
+        $newUserName = sanitizeInput($_POST['user_name']);
+        
+        // Vérifier si le nom est déjà utilisé
+        if (!empty($newUserName)) {
+            // Charger toutes les inscriptions pour vérifier les noms existants
+            $allLists = loadLists();
+            $nameExists = false;
+            
+            foreach ($allLists as $list) {
+                $listId = $list['id'];
+                $registrations = getAllRegistrations($listId);
+                if (isset($registrations[$newUserName])) {
+                    $nameExists = true;
+                    break;
+                }
+            }
+            
+            // Vérifier aussi dans les cookies/sessions
+            if (!$nameExists && isset($_COOKIE['user_name']) && $_COOKIE['user_name'] === $newUserName) {
+                $nameExists = true;
+            }
+            
+            if ($nameExists) {
+                $error = 'Ce nom est déjà utilisé. Veuillez en choisir un autre.';
+            } else {
+                setCurrentUserName($newUserName);
+                redirect(url('user/index.php'));
+            }
         }
     }
     
@@ -23,6 +57,11 @@ if (empty($userName)) {
     echo '<div class="container">';
     echo '<h1>Bienvenue</h1>';
     echo '<p>Veuillez entrer votre nom pour commencer :</p>';
+    
+    if (!empty($error)):
+        echo '<div class="alert alert-error">' . htmlspecialchars($error) . '</div>';
+    endif;
+    
     echo '<form method="post" action="">';
     echo '<input type="text" name="user_name" placeholder="Votre nom" required autofocus>';
     echo '<button type="submit" class="btn btn-primary">Continuer</button>';
@@ -30,13 +69,6 @@ if (empty($userName)) {
     echo '</div>';
     include __DIR__ . '/../includes/footer.php';
     exit();
-}
-
-// Gérer la déconnexion
-if (isset($_GET['logout'])) {
-    unset($_SESSION['user_name']);
-    setcookie('user_name', '', time() - 3600, '/');
-    redirect(url('user/index.php'));
 }
 
 // Charger les listes
@@ -68,7 +100,17 @@ include __DIR__ . '/../includes/header.php';
                     <div class="list-meta">
                         <p>
                             <strong>ID:</strong> <?php echo $list['id']; ?><br>
-                            <strong>Colonnes :</strong> <?php echo count($list['columns']); ?>
+                            <strong>Colonnes :</strong> <?php 
+                                $colCount = 0;
+                                if (!empty($list['columns'])) {
+                                    if (isset($list['columns'][0]['name'])) {
+                                        $colCount = count($list['columns']);
+                                    } else {
+                                        $colCount = count($list['columns']);
+                                    }
+                                }
+                                echo $colCount;
+                            ?>
                         </p>
                         <p>
                             <strong>Mot de passe :</strong> 

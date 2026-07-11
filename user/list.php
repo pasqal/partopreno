@@ -71,6 +71,21 @@ $userRegistrations = isset($registrations[$userName]) ? $registrations[$userName
 // Organiser les colonnes par catégorie
 $columnsByCategory = getColumnsByCategory($list);
 
+// Fonction pour générer une couleur unique pour un utilisateur
+function getUserColor($username) {
+    // Générer une couleur basée sur le nom d'utilisateur pour qu'elle soit toujours la même
+    $colors = [
+        '#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7',
+        '#DDA0DD', '#98D8C8', '#F7DC6F', '#BB8FCE', '#85C1E2',
+        '#F8B739', '#52B788', '#FF9AA2', '#5DADE2', '#F4D03F'
+    ];
+    
+    // Utiliser le hash du nom pour sélectionner une couleur
+    $hash = crc32($username);
+    $index = abs($hash) % count($colors);
+    return $colors[$index];
+}
+
 include __DIR__ . '/../includes/header.php';
 ?>
 
@@ -113,7 +128,7 @@ include __DIR__ . '/../includes/header.php';
                 // Récupérer tous les utilisateurs inscrits à cette colonne
                 foreach ($registrations as $name => $userCols) {
                     if (in_array($columnName, $userCols)) {
-                        $usersInColumn[] = htmlspecialchars($name);
+                        $usersInColumn[] = $name;
                     }
                 }
                 
@@ -144,8 +159,9 @@ include __DIR__ . '/../includes/header.php';
                 if (!empty($usersInColumn)):
                     echo '<div class="users-bubbles">';
                     foreach ($usersInColumn as $name):
-                        $isCurrentUser = ($name === htmlspecialchars($userName));
-                        echo '<span class="user-bubble ' . ($isCurrentUser ? 'current-user' : '') . '">' . $name . '</span>';
+                        $isCurrentUser = ($name === $userName);
+                        $userColor = getUserColor($name);
+                        echo '<span class="user-bubble" style="background-color: ' . $userColor . ';">' . htmlspecialchars($name) . '</span>';
                     endforeach;
                     echo '</div>';
                 endif;
@@ -165,7 +181,7 @@ include __DIR__ . '/../includes/header.php';
         <ul>
             <li><span class="legend-mark registered">✓</span> = Vous êtes inscrit</li>
             <li><span class="legend-mark">+</span> = Cliquez pour vous inscrire</li>
-            <li><span class="user-bubble">Nom</span> = Utilisateur inscrit</li>
+            <li><span class="user-bubble">Nom</span> = Utilisateur inscrit (chaque utilisateur a sa propre couleur)</li>
         </ul>
     </div>
 </div>
@@ -187,13 +203,17 @@ include __DIR__ . '/../includes/header.php';
     .cell-btn:hover { background-color: #e9ecef; }
     .users-bubbles { display: inline-block; margin-left: 10px; }
     .user-bubble {
-        display: inline-block; background-color: #4a6fa5; color: white;
+        display: inline-block; color: white;
         padding: 4px 10px; border-radius: 15px; margin: 3px; font-size: 12px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
     }
-    .user-bubble.current-user { background-color: #28a745; }
+    .user-bubble.current-user { 
+        background-color: #28a745 !important;
+        box-shadow: 0 0 0 2px white, 0 0 0 4px #28a745;
+    }
     .column-row:hover { background-color: #f8f9fa; }
     .legend { margin-top: 20px; padding: 15px; background-color: #f8f9fa; border-radius: 5px; }
-    .legend ul { list-style: none; padding: 0; display: flex; gap: 20px; align-items: center; }
+    .legend ul { list-style: none; padding: 0; display: flex; gap: 20px; align-items: center; flex-wrap: wrap; }
     .legend li { display: flex; align-items: center; gap: 5px; }
     .legend-mark {
         display: inline-block; padding: 2px 6px; border: 2px solid #4a6fa5;
