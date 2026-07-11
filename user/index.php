@@ -6,64 +6,16 @@
 require_once __DIR__ . '/../includes/config.php';
 require_once __DIR__ . '/../includes/functions.php';
 
-// Vérifier si l'utilisateur a un nom
-$userName = getCurrentUserName();
-
-// Gérer la déconnexion
+// Gérer la déconnexion (supprime toutes les sessions de nom)
 if (isset($_GET['logout'])) {
-    unset($_SESSION['user_name']);
-    setcookie('user_name', '', time() - 3600, '/');
-    redirect(url('user/index.php'));
-}
-
-// Gérer la soumission du nom d'utilisateur
-if (empty($userName)) {
-    $warning = '';
-    
-    if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['user_name'])) {
-        $newUserName = sanitizeInput($_POST['user_name']);
-        
-        // Vérifier si le nom est déjà utilisé (juste pour information)
-        if (!empty($newUserName)) {
-            $allLists = loadLists();
-            $nameExists = false;
-            
-            foreach ($allLists as $list) {
-                $listId = $list['id'];
-                $registrations = getAllRegistrations($listId);
-                if (isset($registrations[$newUserName])) {
-                    $nameExists = true;
-                    break;
-                }
-            }
-            
-            if ($nameExists) {
-                $warning = '⚠️ Ce nom est déjà utilisé par un autre utilisateur. Vous pouvez tout de même l\'utiliser.';
-            }
-            
-            // Toujours accepter le nom
-            setCurrentUserName($newUserName);
-            redirect(url('user/index.php'));
+    // Supprimer toutes les sessions de nom pour les listes
+    foreach ($_SESSION as $key => $value) {
+        if (strpos($key, 'list_user_name_') === 0) {
+            unset($_SESSION[$key]);
         }
     }
-    
-    // Afficher le formulaire de nom d'utilisateur
-    include __DIR__ . '/../includes/header.php';
-    echo '<div class="container">';
-    echo '<h1>Bienvenue</h1>';
-    echo '<p>Veuillez entrer votre nom pour commencer :</p>';
-    
-    if (!empty($warning)):
-        echo '<div class="alert alert-warning">' . $warning . '</div>';
-    endif;
-    
-    echo '<form method="post" action="">';
-    echo '<input type="text" name="user_name" placeholder="Votre nom" required autofocus>';
-    echo '<button type="submit" class="btn btn-primary">Continuer</button>';
-    echo '</form>';
-    echo '</div>';
-    include __DIR__ . '/../includes/footer.php';
-    exit();
+    setcookie('user_name', '', time() - 3600, '/');
+    redirect(url('user/index.php'));
 }
 
 // Charger les listes
@@ -78,14 +30,8 @@ include __DIR__ . '/../includes/header.php';
 ?>
 
 <div class="container">
-    <div class="header-flex">
-        <h1>Bonjour, <?php echo htmlspecialchars($userName); ?> !</h1>
-        <div class="user-info">
-            <span>Connecté en tant que : <strong><?php echo htmlspecialchars($userName); ?></strong></span>
-        </div>
-    </div>
-    
-    <p>Voici les listes disponibles pour vous inscrire :</p>
+    <h1>Liste des événements disponibles</h1>
+    <p>Sélectionnez une liste pour vous inscrire :</p>
     
     <?php if (empty($lists)): ?>
         <div class="alert alert-info">
@@ -136,12 +82,12 @@ include __DIR__ . '/../includes/header.php';
         
         <div class="direct-access-info">
             <p><strong>Accès direct :</strong> Vous pouvez aussi accéder directement à une liste en utilisant l'URL : <code><?php echo htmlspecialchars($_SERVER['HTTP_HOST'] . url('user/list.php?id=X')); ?></code></p>
-            <p>Remplacez X par l'ID de la liste.</p>
+            <p>Remplacez X par l'ID de la liste. <strong>Vous devrez entrer votre nom à chaque liste.</strong></p>
         </div>
     <?php endif; ?>
     
     <div class="mt-2">
-        <a href="<?php echo url('user/?logout=1'); ?>" class="btn btn-secondary">Changer de nom</a>
+        <a href="<?php echo url('user/?logout=1'); ?>" class="btn btn-secondary">Réinitialiser les noms</a>
     </div>
 </div>
 

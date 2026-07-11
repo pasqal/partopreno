@@ -21,37 +21,31 @@ if (!$list) {
 // Vérifier si la liste nécessite un mot de passe
 if (empty($list['password'])) {
     // Pas de mot de passe requis, rediriger vers la liste
-    $_SESSION['list_access_' . $listId] = true;
+    // On ne stocke pas list_access car on veut forcer la saisie du nom
     redirect(url('user/list.php?id=' . $listId));
 }
 
-// Gérer la soumission du nom d'utilisateur (si pas encore de nom)
-$userName = getCurrentUserName();
+// FORCER la saisie du nom pour chaque liste - pas de session globale
+$sessionKey = 'list_user_name_' . $listId;
+$userName = isset($_SESSION[$sessionKey]) ? $_SESSION[$sessionKey] : '';
+
 $nameWarning = '';
 
+// Gérer la soumission du nom d'utilisateur
 if (empty($userName) && $_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['set_user_name'])) {
     $newUserName = sanitizeInput($_POST['set_user_name']);
     
     if (!empty($newUserName)) {
-        // Vérifier si le nom est déjà utilisé (juste pour information)
-        $allLists = loadLists();
-        $nameExists = false;
-        
-        foreach ($allLists as $listItem) {
-            $listIdCheck = $listItem['id'];
-            $registrations = getAllRegistrations($listIdCheck);
-            if (isset($registrations[$newUserName])) {
-                $nameExists = true;
-                break;
-            }
-        }
+        // Vérifier si le nom est déjà utilisé dans cette liste (juste pour information)
+        $registrations = getAllRegistrations($listId);
+        $nameExists = isset($registrations[$newUserName]);
         
         if ($nameExists) {
-            $nameWarning = '⚠️ Ce nom est déjà utilisé par un autre utilisateur. Vous pouvez tout de même l\'utiliser.';
+            $nameWarning = '⚠️ Ce nom est déjà utilisé par un autre utilisateur dans cette liste. Vous pouvez tout de même l\'utiliser.';
         }
         
-        // Toujours accepter le nom
-        setCurrentUserName($newUserName);
+        // Toujours accepter le nom et le stocker pour cette liste
+        $_SESSION[$sessionKey] = $newUserName;
         $userName = $newUserName;
     }
 }
@@ -62,6 +56,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['password'])) {
     $password = $_POST['password'];
     
     if (checkListPassword($listId, $password)) {
+        // Stocker l'accès à la liste (mais pas le nom, qui sera demandé à chaque fois)
         $_SESSION['list_access_' . $listId] = true;
         redirect(url('user/list.php?id=' . $listId));
     } else {
@@ -88,7 +83,7 @@ include __DIR__ . '/../includes/header.php';
         <div class="name-input-container">
             <form method="post" action="" class="name-form">
                 <div class="form-group name-group">
-                    <label for="set_user_name">Votre nom *</label>
+                    <label for="set_user_name">Votre nom pour cette liste *</label>
                     <div class="input-with-warning">
                         <input type="text" id="set_user_name" name="set_user_name" placeholder="Entrez votre nom" required autofocus>
                         <button type="submit" class="btn btn-primary">Valider</button>
@@ -119,9 +114,9 @@ include __DIR__ . '/../includes/header.php';
     .name-input-container {
         margin: 20px 0;
         padding: 20px;
-        background-color: #f8f9fa;
+        background-color: #fff3cd;
         border-radius: 8px;
-        border: 2px dashed #ddd;
+        border: 2px solid #ffc107;
     }
     .name-form {
         max-width: 500px;
