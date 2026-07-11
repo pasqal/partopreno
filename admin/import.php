@@ -9,7 +9,7 @@ require_once __DIR__ . '/../includes/markdown_parser.php';
 
 // Vérifier la connexion admin
 if (!isAdminLoggedIn() || !checkSessionTimeout()) {
-    redirect('login.php');
+    redirect(BASE_URL . 'admin/login.php');
 }
 
 // Variables
@@ -79,7 +79,7 @@ include __DIR__ . '/../includes/header.php';
     <div class="header-flex">
         <h1>Importer une liste</h1>
         <div>
-            <a href="<?php echo BASE_URL; ?>admin/" class="btn btn-secondary">← Retour au tableau de bord</a>
+            <a href="<?php echo BASE_URL; ?>admin/index.php" class="btn btn-secondary">← Retour au tableau de bord</a>
         </div>
     </div>
     
@@ -148,16 +148,3 @@ Description de la liste (optionnelle)
     
     <form method="post" action="" enctype="multipart/form-data">
         <input type="hidden" name="csrf_token" value="<?php echo generateCsrfToken(); ?>">
-        
-        <div class="form-group">
-            <label for="file">Sélectionnez un fichier CSV, TXT ou Markdown (.md) :</label>
-            <input type="file" id="file" name="file" accept=".csv,.txt,.md,.markdown" required>
-        </div>
-        
-        <button type="submit" class="btn btn-primary">Importer</button>
-        <button type="reset" class="btn btn-secondary">Réinitialiser</button>
-    </form>
-</div>
-
-<?php
-include __DIR__ . '/../includes/footer.php';

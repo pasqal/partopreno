@@ -8,7 +8,7 @@ require_once __DIR__ . '/../includes/functions.php';
 
 // Vérifier la connexion admin
 if (!isAdminLoggedIn() || !checkSessionTimeout()) {
-    redirect('login.php');
+    redirect(BASE_URL . 'admin/login.php');
 }
 
 // Variables
@@ -30,14 +30,14 @@ if (isset($_GET['delete']) && is_numeric($_GET['delete'])) {
         $error = 'Erreur lors de la suppression de la liste.';
     }
     
-    redirect('manage.php?message=' . urlencode($success ?: $error));
+    redirect(BASE_URL . 'admin/manage.php?message=' . urlencode($success ?: $error));
 }
 
 // Gérer l'édition
 if (isset($_GET['edit']) && is_numeric($_GET['edit'])) {
     $listToEdit = getListById((int)$_GET['edit']);
     if (!$listToEdit) {
-        redirect('manage.php');
+        redirect(BASE_URL . 'admin/manage.php');
     }
 }
 
@@ -96,7 +96,7 @@ include __DIR__ . '/../includes/header.php';
     <div class="header-flex">
         <h1><?php echo $listToEdit ? 'Modifier une liste' : 'Gérer les listes'; ?></h1>
         <div>
-            <a href="index.php" class="btn btn-secondary">← Retour au tableau de bord</a>
+            <a href="<?php echo BASE_URL; ?>admin/index.php" class="btn btn-secondary">← Retour au tableau de bord</a>
         </div>
     </div>
     
@@ -144,8 +144,8 @@ include __DIR__ . '/../includes/header.php';
                                     <?php echo !empty($list['password']) ? '<span class="badge badge-warning">Oui</span>' : '<span class="badge badge-success">Non</span>'; ?>
                                 </td>
                                 <td>
-                                    <a href="manage.php?edit=<?php echo $list['id']; ?>" class="btn btn-small btn-edit">Modifier</a>
-                                    <a href="manage.php?delete=<?php echo $list['id']; ?>&csrf_token=<?php echo generateCsrfToken(); ?>" class="btn btn-small btn-delete" onclick="return confirm('Êtes-vous sûr de vouloir supprimer cette liste ?');">Supprimer</a>
+                                    <a href="<?php echo BASE_URL; ?>admin/manage.php?edit=<?php echo $list['id']; ?>" class="btn btn-small btn-edit">Modifier</a>
+                                    <a href="<?php echo BASE_URL; ?>admin/manage.php?delete=<?php echo $list['id']; ?>&csrf_token=<?php echo generateCsrfToken(); ?>" class="btn btn-small btn-delete" onclick="return confirm('Êtes-vous sûr de vouloir supprimer cette liste ?');">Supprimer</a>
                                 </td>
                             </tr>
                         <?php endforeach; ?>
@@ -190,7 +190,7 @@ include __DIR__ . '/../includes/header.php';
         </form>
         
         <div class="import-link">
-            <p>Pour importer une liste depuis un fichier CSV ou Markdown : <a href="import.php" class="btn btn-small btn-primary">Aller à l'import</a></p>
+            <p>Pour importer une liste depuis un fichier CSV ou Markdown : <a href="<?php echo BASE_URL; ?>admin/import.php" class="btn btn-small btn-primary">Aller à l'import</a></p>
         </div>
         
     <?php else: ?>
@@ -225,7 +225,7 @@ include __DIR__ . '/../includes/header.php';
             </div>
             
             <button type="submit" class="btn btn-primary">Mettre à jour</button>
-            <a href="manage.php" class="btn btn-secondary">Annuler</a>
+            <a href="<?php echo BASE_URL; ?>admin/manage.php" class="btn btn-secondary">Annuler</a>
         </form>
     <?php endif; ?>
 </div>

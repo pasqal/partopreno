@@ -8,7 +8,7 @@ require_once __DIR__ . '/../includes/functions.php';
 
 // Vérifier si l'admin est déjà connecté
 if (isAdminLoggedIn()) {
-    redirect('index.php');
+    redirect(BASE_URL . 'admin/index.php');
 }
 
 // Gérer la soumission du formulaire
@@ -21,7 +21,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $_SESSION['admin_logged_in'] = true;
         $_SESSION['admin_username'] = $username;
         $_SESSION['last_activity'] = time();
-        redirect('index.php');
+        redirect(BASE_URL . 'admin/index.php');
     } else {
         $error = 'Nom d\'utilisateur ou mot de passe incorrect.';
     }

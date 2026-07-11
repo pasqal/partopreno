@@ -8,7 +8,7 @@ require_once __DIR__ . '/../includes/functions.php';
 
 // Vérifier la connexion admin
 if (!isAdminLoggedIn() || !checkSessionTimeout()) {
-    redirect('login.php');
+    redirect(BASE_URL . 'admin/login.php');
 }
 
 // Charger les listes
@@ -44,7 +44,7 @@ include __DIR__ . '/../includes/header.php';
     <div class="header-flex">
         <h1>Exporter une liste</h1>
         <div>
-            <a href="index.php" class="btn btn-secondary">← Retour au tableau de bord</a>
+            <a href="<?php echo BASE_URL; ?>admin/index.php" class="btn btn-secondary">← Retour au tableau de bord</a>
         </div>
     </div>
     
@@ -58,7 +58,7 @@ include __DIR__ . '/../includes/header.php';
     
     <?php if (empty($lists)): ?>
         <div class="alert alert-info">
-            Aucune liste n'est disponible pour l'export. <a href="manage.php">Créer une nouvelle liste</a>.
+            Aucune liste n'est disponible pour l'export. <a href="<?php echo BASE_URL; ?>admin/manage.php">Créer une nouvelle liste</a>.
         </div>
     <?php else: ?>
         <div class="table-container">
@@ -85,7 +85,7 @@ include __DIR__ . '/../includes/header.php';
                                 ?>
                             </td>
                             <td>
-                                <a href="export.php?list_id=<?php echo $list['id']; ?>" class="btn btn-small btn-download">
+                                <a href="<?php echo BASE_URL; ?>admin/export.php?list_id=<?php echo $list['id']; ?>" class="btn btn-small btn-download">
                                     Exporter CSV
                                 </a>
                             </td>
@@ -98,12 +98,3 @@ include __DIR__ . '/../includes/header.php';
         <div class="mt-2">
             <p>
                 <strong>Format du CSV exporté :</strong><br>
-                La première ligne contient les en-têtes (Utilisateur, Colonne1, Colonne2, ...).<br>
-                Chaque ligne suivante représente un utilisateur et ses inscriptions (X = inscrit, vide = non inscrit).
-            </p>
-        </div>
-    <?php endif; ?>
-</div>
-
-<?php
-include __DIR__ . '/../includes/footer.php';

@@ -1,12 +1,12 @@
 <?php
 // ============================================
-// Partie Utilisateur - Liste des 	v	nements disponibles
+// Partie Utilisateur - Liste des événements disponibles
 // ============================================
 
 require_once __DIR__ . '/../includes/config.php';
 require_once __DIR__ . '/../includes/functions.php';
 
-// Vrifier si l'utilisateur a un nom
+// Vérifier si l'utilisateur a un nom
 $userName = getCurrentUserName();
 if (empty($userName)) {
     // Demander un nom d'utilisateur
@@ -14,7 +14,7 @@ if (empty($userName)) {
         $userName = sanitizeInput($_POST['user_name']);
         if (!empty($userName)) {
             setCurrentUserName($userName);
-            redirect('index.php');
+            redirect(BASE_URL . 'user/index.php');
         }
     }
     
@@ -32,11 +32,11 @@ if (empty($userName)) {
     exit();
 }
 
-// Grer la dconnexion
+// Gérer la déconnexion
 if (isset($_GET['logout'])) {
     unset($_SESSION['user_name']);
     setcookie('user_name', '', time() - 3600, '/');
-    redirect('index.php');
+    redirect(BASE_URL . 'user/index.php');
 }
 
 // Charger les listes
@@ -74,11 +74,11 @@ include __DIR__ . '/../includes/header.php';
                             <?php echo !empty($list['password']) ? '<span class="badge badge-warning">Oui</span>' : '<span class="badge badge-success">Non</span>'; ?>
                         </p>
                         <p>
-                            <strong>Cr le :</strong> <?php echo date('d/m/Y H:i', strtotime($list['created_at'])); ?>
+                            <strong>Créé le :</strong> <?php echo date('d/m/Y H:i', strtotime($list['created_at'])); ?>
                         </p>
                     </div>
                     
-                    <a href="list.php?id=<?php echo $list['id']; ?>" class="btn btn-primary">
+                    <a href="<?php echo BASE_URL; ?>user/list.php?id=<?php echo $list['id']; ?>" class="btn btn-primary">
                         Voir la liste
                     </a>
                 </div>
@@ -87,7 +87,7 @@ include __DIR__ . '/../includes/header.php';
     <?php endif; ?>
     
     <div class="mt-2">
-        <a href="?logout=1" class="btn btn-secondary">Changer de nom</a>
+        <a href="<?php echo BASE_URL; ?>user/?logout=1" class="btn btn-secondary">Changer de nom</a>
     </div>
 </div>
 

@@ -8,25 +8,25 @@ require_once __DIR__ . '/../includes/functions.php';
 
 // Vérifier si l'ID de la liste est fourni
 if (!isset($_GET['id'])) {
-    redirect('index.php');
+    redirect(BASE_URL . 'user/index.php');
 }
 
 $listId = (int)$_GET['id'];
 $list = getListById($listId);
 
 if (!$list) {
-    redirect('index.php');
+    redirect(BASE_URL . 'user/index.php');
 }
 
 // Vérifier l'accès à la liste
 if (!empty($list['password']) && !isset($_SESSION['list_access_' . $listId])) {
-    redirect('auth.php?id=' . $listId);
+    redirect(BASE_URL . 'user/auth.php?id=' . $listId);
 }
 
 // Vérifier si l'utilisateur a un nom
 $userName = getCurrentUserName();
 if (empty($userName)) {
-    redirect('index.php');
+    redirect(BASE_URL . 'user/index.php');
 }
 
 // Gérer les inscriptions/désinscriptions
@@ -44,7 +44,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             registerUser($listId, $userName, $column);
         }
     }
-    redirect('list.php?id=' . $listId);
+    redirect(BASE_URL . 'user/list.php?id=' . $listId);
 }
 
 // Charger les inscriptions
@@ -63,7 +63,7 @@ include __DIR__ . '/../includes/header.php';
     </div>
     
     <p>
-        <a href="index.php" class="btn btn-secondary">← Retour à la liste des événements</a>
+        <a href="<?php echo BASE_URL; ?>user/index.php" class="btn btn-secondary">← Retour à la liste des événements</a>
     </p>
     
     <?php if (!empty($list['description'])): ?>
@@ -98,7 +98,7 @@ include __DIR__ . '/../includes/header.php';
                     
                     // Cellule de l'entrée (colonne)
                     echo '<td class="column-name">';
-                    echo '<form method="post" action="" style="margin: 0;">';
+                    echo '<form method="post" action="' . BASE_URL . 'user/list.php?id=' . $listId . '" style="margin: 0;">';
                     echo '<input type="hidden" name="remove_column" value="' . htmlspecialchars($column) . '">';
                     echo '<button type="submit" class="column-name-btn" style="background: none; border: none; text-align: left; width: 100%; cursor: pointer;">';
                     echo htmlspecialchars($column);
@@ -110,7 +110,7 @@ include __DIR__ . '/../includes/header.php';
                     echo '<td class="users-cell">';
                     
                     // Case à cocher pour s'inscrire
-                    echo '<form method="post" action="" style="margin: 0; display: inline-block;">';
+                    echo '<form method="post" action="' . BASE_URL . 'user/list.php?id=' . $listId . '" style="margin: 0; display: inline-block;">';
                     echo '<input type="hidden" name="column" value="' . htmlspecialchars($column) . '">';
                     echo '<button type="submit" class="cell-btn ' . ($isRegistered ? 'registered' : '') . '">';
                     echo $isRegistered ? '✓' : '+';
