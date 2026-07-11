@@ -18,16 +18,8 @@ define('REGISTRATIONS_DIR', DATA_DIR . 'registrations/');
 define('LISTS_FILE', DATA_DIR . 'lists.json');
 
 // --- Base URL pour les liens ---
-// Détecter automatiquement la base URL en fonction du script actuel
-$script_name = $_SERVER['SCRIPT_NAME'];
-$base_url = '/';
-
-// Si le script est dans un sous-dossier (user/ ou admin/), on remonte à la racine
-if (strpos($script_name, '/user/') !== false || strpos($script_name, '/admin/') !== false) {
-    $base_url = '/';
-}
-
-define('BASE_URL', $base_url);
+// Toujours utiliser / comme base, sans slash final pour éviter les doublons
+define('BASE_URL', '/');
 
 // --- Options ---
 define('DEBUG_MODE', true);

@@ -377,6 +377,18 @@ function redirect($url) {
 }
 
 /**
+ * Générer une URL absolue
+ * @param string $path Chemin relatif
+ * @return string URL absolue
+ */
+function url($path) {
+    // Supprimer les slashes de début de $path
+    $path = ltrim($path, '/');
+    // BASE_URL se termine déjà par /, donc on concatène directement
+    return BASE_URL . $path;
+}
+
+/**
  * Vérifier si une liste nécessite un mot de passe
  * @param int $listId ID de la liste
  * @return bool True si un mot de passe est requis

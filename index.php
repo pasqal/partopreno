@@ -4,7 +4,7 @@
 // ============================================
 
 require_once __DIR__ . '/includes/config.php';
+require_once __DIR__ . '/includes/functions.php';
 
 // Rediriger vers la liste des événements
-header("Location: " . BASE_URL . "user/");
-exit();
+redirect(url('user/'));

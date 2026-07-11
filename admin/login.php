@@ -8,7 +8,7 @@ require_once __DIR__ . '/../includes/functions.php';
 
 // Vérifier si l'admin est déjà connecté
 if (isAdminLoggedIn()) {
-    redirect(BASE_URL . 'admin/index.php');
+    redirect(url('admin/index.php'));
 }
 
 // Gérer la soumission du formulaire
@@ -21,7 +21,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $_SESSION['admin_logged_in'] = true;
         $_SESSION['admin_username'] = $username;
         $_SESSION['last_activity'] = time();
-        redirect(BASE_URL . 'admin/index.php');
+        redirect(url('admin/index.php'));
     } else {
         $error = 'Nom d\'utilisateur ou mot de passe incorrect.';
     }
@@ -57,7 +57,7 @@ include __DIR__ . '/../includes/header.php';
         </form>
         
         <p class="mt-1 text-center">
-            <a href="<?php echo BASE_URL; ?>user/">Accès utilisateur</a>
+            <a href="<?php echo url('user/'); ?>">Accès utilisateur</a>
         </p>
     </div>
 </div>

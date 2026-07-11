@@ -10,6 +10,6 @@
         </div>
     </footer>
     
-    <script src="<?php echo BASE_URL; ?>assets/js/script.js"></script>
+    <script src="<?php echo url('assets/js/script.js'); ?>"></script>
 </body>
 </html>

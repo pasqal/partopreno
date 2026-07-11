@@ -9,7 +9,7 @@ require_once __DIR__ . '/../includes/markdown_parser.php';
 
 // Vérifier la connexion admin
 if (!isAdminLoggedIn() || !checkSessionTimeout()) {
-    redirect(BASE_URL . 'admin/login.php');
+    redirect(url('admin/login.php');
 }
 
 // Variables
@@ -79,7 +79,7 @@ include __DIR__ . '/../includes/header.php';
     <div class="header-flex">
         <h1>Importer une liste</h1>
         <div>
-            <a href="<?php echo BASE_URL; ?>admin/index.php" class="btn btn-secondary">← Retour au tableau de bord</a>
+            <a href="<?php echo url('admin/index.php" class="btn btn-secondary">← Retour au tableau de bord</a>
         </div>
     </div>
     
@@ -137,9 +137,9 @@ Description de la liste (optionnelle)
         <div class="example-link">
             <p>Exemples de fichiers :</p>
             <ul>
-                <li><a href="<?php echo BASE_URL; ?>assets/examples/import_example.csv" target="_blank">Exemple CSV</a></li>
-                <li><a href="<?php echo BASE_URL; ?>assets/examples/Match simple.md" target="_blank">Exemple Markdown 1</a></li>
-                <li><a href="<?php echo BASE_URL; ?>assets/examples/liste2.md" target="_blank">Exemple Markdown 2</a></li>
+                <li><a href="<?php echo url('assets/examples/import_example.csv" target="_blank">Exemple CSV</a></li>
+                <li><a href="<?php echo url('assets/examples/Match simple.md" target="_blank">Exemple Markdown 1</a></li>
+                <li><a href="<?php echo url('assets/examples/liste2.md" target="_blank">Exemple Markdown 2</a></li>
             </ul>
         </div>
     </div>

@@ -14,7 +14,7 @@ if (empty($userName)) {
         $userName = sanitizeInput($_POST['user_name']);
         if (!empty($userName)) {
             setCurrentUserName($userName);
-            redirect(BASE_URL . 'user/index.php');
+            redirect(url('user/index.php'));
         }
     }
     
@@ -36,7 +36,7 @@ if (empty($userName)) {
 if (isset($_GET['logout'])) {
     unset($_SESSION['user_name']);
     setcookie('user_name', '', time() - 3600, '/');
-    redirect(BASE_URL . 'user/index.php');
+    redirect(url('user/index.php'));
 }
 
 // Charger les listes
@@ -67,6 +67,7 @@ include __DIR__ . '/../includes/header.php';
                     
                     <div class="list-meta">
                         <p>
+                            <strong>ID:</strong> <?php echo $list['id']; ?><br>
                             <strong>Colonnes :</strong> <?php echo count($list['columns']); ?>
                         </p>
                         <p>
@@ -78,7 +79,7 @@ include __DIR__ . '/../includes/header.php';
                         </p>
                     </div>
                     
-                    <a href="<?php echo BASE_URL; ?>user/list.php?id=<?php echo $list['id']; ?>" class="btn btn-primary">
+                    <a href="<?php echo url('user/list.php?id=' . $list['id']); ?>" class="btn btn-primary">
                         Voir la liste
                     </a>
                 </div>
@@ -87,7 +88,7 @@ include __DIR__ . '/../includes/header.php';
     <?php endif; ?>
     
     <div class="mt-2">
-        <a href="<?php echo BASE_URL; ?>user/?logout=1" class="btn btn-secondary">Changer de nom</a>
+        <a href="<?php echo url('user/?logout=1'); ?>" class="btn btn-secondary">Changer de nom</a>
     </div>
 </div>
 
