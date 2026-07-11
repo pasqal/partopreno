@@ -1,10 +1,11 @@
 <?php
 // ============================================
-// Import de listes depuis CSV/TXT
+// Import de listes depuis CSV/TXT/Markdown
 // ============================================
 
 require_once __DIR__ . '/../includes/config.php';
 require_once __DIR__ . '/../includes/functions.php';
+require_once __DIR__ . '/../includes/markdown_parser.php';
 
 // Vérifier la connexion admin
 if (!isAdminLoggedIn() || !checkSessionTimeout()) {
@@ -16,12 +17,12 @@ $error = '';
 $success = '';
 
 // Gérer l'import
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['csv_file'])) {
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['file'])) {
     // Vérifier le token CSRF
     if (!isset($_POST['csrf_token']) || !validateCsrfToken($_POST['csrf_token'])) {
         $error = 'Token de sécurité invalide.';
     } else {
-        $file = $_FILES['csv_file'];
+        $file = $_FILES['file'];
         
         // Vérifier les erreurs de téléchargement
         if ($file['error'] !== UPLOAD_ERR_OK) {
@@ -35,15 +36,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['csv_file'])) {
                       UPLOAD_ERR_EXTENSION => 'Extension PHP a arrêté le téléchargement'][($file['error'] ?? 0)];
         } else {
             // Vérifier l'extension
-            $allowedExtensions = ['csv', 'txt'];
+            $allowedExtensions = ['csv', 'txt', 'md', 'markdown'];
             $fileExtension = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
             
             if (!in_array($fileExtension, $allowedExtensions)) {
-                $error = 'Seuls les fichiers CSV et TXT sont autorisés.';
+                $error = 'Seuls les fichiers CSV, TXT et Markdown (.md, .markdown) sont autorisés.';
             } else {
                 // Déplacer le fichier temporaire
                 $tempPath = $file['tmp_name'];
-                $result = importListFromCSV($tempPath);
+                
+                // Traiter selon l'extension
+                if (in_array($fileExtension, ['md', 'markdown'])) {
+                    $result = importListFromMarkdown($tempPath);
+                } else {
+                    $result = importListFromCSV($tempPath);
+                }
                 
                 if ($result === false) {
                     $error = 'Erreur lors de l\'import du fichier. Vérifiez que le format est correct.';
@@ -51,6 +58,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['csv_file'])) {
                     $success = 'Liste "' . htmlspecialchars($result['name']) . '" importée avec succès !';
                     $success .= '<br>ID : ' . $result['id'];
                     $success .= '<br>Colonnes : ' . implode(', ', array_map('htmlspecialchars', $result['columns']));
+                    if (!empty($result['description'])) {
+                        $success .= '<br><br><strong>Description :</strong><br>' . nl2br(htmlspecialchars($result['description']));
+                    }
                 }
                 
                 // Supprimer le fichier temporaire
@@ -86,7 +96,12 @@ include __DIR__ . '/../includes/header.php';
     <?php endif; ?>
     
     <div class="import-info">
-        <h3>Format du fichier CSV/TXT</h3>
+        <h3>Formats acceptés</h3>
+        <p>Vous pouvez importer des listes depuis des fichiers <strong>CSV</strong>, <strong>TXT</strong> ou <strong>Markdown</strong>.</p>
+        
+        <hr>
+        
+        <h4>Format CSV/TXT</h4>
         <p>Le fichier doit avoir le format suivant (séparateur : virgule <code>,</code>) :</p>
         <pre><code>Nom de la liste,Nom1,Nom2,Nom3
 Exemple,Ligne 1,Ligne 2,Ligne 3</code></pre>
@@ -95,6 +110,38 @@ Exemple,Ligne 1,Ligne 2,Ligne 3</code></pre>
             <li>La <strong>deuxième ligne</strong> contient le nom de la liste suivi des noms des colonnes.</li>
             <li>Les lignes suivantes seront ignorées.</li>
         </ul>
+        
+        <hr>
+        
+        <h4>Format Markdown</h4>
+        <p>Le fichier Markdown doit avoir la structure suivante :</p>
+        <pre><code># Titre de la liste
+Description de la liste (optionnelle)
+
+## Catégorie 1
+- Élément 1
+- Élément 2
+- Élément 3
+
+## Catégorie 2
+- Élément A
+- Élément B</code></pre>
+        <ul>
+            <li><code>#</code> : Titre de la liste (obligatoire)</li>
+            <li>Les lignes suivant le titre (avant le premier <code>##</code>) deviennent la description</li>
+            <li><code>##</code> : Nom de la catégorie (optionnelle, devient un préfixe pour les éléments)</li>
+            <li><code>-</code> : Élément de la liste (devient une colonne du tableau)</li>
+            <li>Si une catégorie est définie, les éléments seront préfixés par "Catégorie - Élément"</li>
+        </ul>
+        
+        <div class="example-link">
+            <p>Exemples de fichiers :</p>
+            <ul>
+                <li><a href="<?php echo BASE_URL; ?>assets/examples/import_example.csv" target="_blank">Exemple CSV</a></li>
+                <li><a href="<?php echo BASE_URL; ?>assets/examples/Match simple.md" target="_blank">Exemple Markdown 1</a></li>
+                <li><a href="<?php echo BASE_URL; ?>assets/examples/liste2.md" target="_blank">Exemple Markdown 2</a></li>
+            </ul>
+        </div>
     </div>
     
     <hr>
@@ -103,8 +150,8 @@ Exemple,Ligne 1,Ligne 2,Ligne 3</code></pre>
         <input type="hidden" name="csrf_token" value="<?php echo generateCsrfToken(); ?>">
         
         <div class="form-group">
-            <label for="csv_file">Sélectionnez un fichier CSV ou TXT :</label>
-            <input type="file" id="csv_file" name="csv_file" accept=".csv,.txt" required>
+            <label for="file">Sélectionnez un fichier CSV, TXT ou Markdown (.md) :</label>
+            <input type="file" id="file" name="file" accept=".csv,.txt,.md,.markdown" required>
         </div>
         
         <button type="submit" class="btn btn-primary">Importer</button>

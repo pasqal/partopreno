@@ -32,6 +32,13 @@ if (empty($userName)) {
     exit();
 }
 
+// Gérer la déconnexion
+if (isset($_GET['logout'])) {
+    unset($_SESSION['user_name']);
+    setcookie('user_name', '', time() - 3600, '/');
+    redirect('index.php');
+}
+
 // Charger les listes
 $lists = loadLists();
 
@@ -51,16 +58,26 @@ include __DIR__ . '/../includes/header.php';
             <?php foreach ($lists as $list): ?>
                 <div class="list-card">
                     <h3><?php echo htmlspecialchars($list['name']); ?></h3>
-                    <p>
-                        <strong>Nombre de colonnes :</strong> <?php echo count($list['columns']); ?>
-                    </p>
-                    <p>
-                        <strong>Mot de passe requis :</strong> 
-                        <?php echo !empty($list['password']) ? '<span class="badge badge-warning">Oui</span>' : '<span class="badge badge-success">Non</span>'; ?>
-                    </p>
-                    <p>
-                        <strong>Créé le :</strong> <?php echo date('d/m/Y H:i', strtotime($list['created_at'])); ?>
-                    </p>
+                    
+                    <?php if (!empty($list['description'])): ?>
+                        <div class="list-description">
+                            <?php echo nl2br(htmlspecialchars($list['description'])); ?>
+                        </div>
+                    <?php endif; ?>
+                    
+                    <div class="list-meta">
+                        <p>
+                            <strong>Colonnes :</strong> <?php echo count($list['columns']); ?>
+                        </p>
+                        <p>
+                            <strong>Mot de passe :</strong> 
+                            <?php echo !empty($list['password']) ? '<span class="badge badge-warning">Oui</span>' : '<span class="badge badge-success">Non</span>'; ?>
+                        </p>
+                        <p>
+                            <strong>Créé le :</strong> <?php echo date('d/m/Y H:i', strtotime($list['created_at'])); ?>
+                        </p>
+                    </div>
+                    
                     <a href="list.php?id=<?php echo $list['id']; ?>" class="btn btn-primary">
                         Voir la liste
                     </a>
@@ -75,11 +92,4 @@ include __DIR__ . '/../includes/header.php';
 </div>
 
 <?php
-// Gérer la déconnexion
-if (isset($_GET['logout'])) {
-    unset($_SESSION['user_name']);
-    setcookie('user_name', '', time() - 3600, '/');
-    redirect('index.php');
-}
-
 include __DIR__ . '/../includes/footer.php';

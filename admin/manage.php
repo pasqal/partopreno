@@ -51,6 +51,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $listId = isset($_POST['list_id']) ? (int)$_POST['list_id'] : 0;
         $name = isset($_POST['name']) ? sanitizeInput($_POST['name']) : '';
         $password = isset($_POST['password']) ? trim($_POST['password']) : null;
+        $description = isset($_POST['description']) ? trim($_POST['description']) : null;
         $columnsInput = isset($_POST['columns']) ? trim($_POST['columns']) : '';
         
         // Convertir les colonnes en tableau
@@ -68,7 +69,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         } else {
             if ($action === 'add') {
                 // Ajouter une nouvelle liste
-                $newId = addList($name, $columns, $password);
+                $newId = addList($name, $columns, $password, $description);
                 if ($newId) {
                     $success = 'Liste créée avec succès !';
                     $listToEdit = null; // Réinitialiser le formulaire
@@ -77,7 +78,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
             } elseif ($action === 'edit' && $listId > 0) {
                 // Modifier une liste existante
-                if (updateList($listId, $name, $columns, $password)) {
+                if (updateList($listId, $name, $columns, $password, $description)) {
                     $success = 'Liste mise à jour avec succès !';
                     $listToEdit = getListById($listId); // Recharger les données
                 } else {
@@ -126,6 +127,7 @@ include __DIR__ . '/../includes/header.php';
                         <tr>
                             <th>ID</th>
                             <th>Nom</th>
+                            <th>Description</th>
                             <th>Colonnes</th>
                             <th>Mot de passe</th>
                             <th>Actions</th>
@@ -136,7 +138,8 @@ include __DIR__ . '/../includes/header.php';
                             <tr>
                                 <td><?php echo $list['id']; ?></td>
                                 <td><?php echo htmlspecialchars($list['name']); ?></td>
-                                <td><?php echo implode(', ', array_map('htmlspecialchars', $list['columns'])); ?></td>
+                                <td><?php echo !empty($list['description']) ? nl2br(htmlspecialchars(substr($list['description'], 0, 50)) . (strlen($list['description']) > 50 ? '...' : '')) : '<span class="badge badge-info">Aucune</span>'; ?></td>
+                                <td><?php echo implode(', ', array_map('htmlspecialchars', array_slice($list['columns'], 0, 3))) . (count($list['columns']) > 3 ? '...' : ''); ?></td>
                                 <td>
                                     <?php echo !empty($list['password']) ? '<span class="badge badge-warning">Oui</span>' : '<span class="badge badge-success">Non</span>'; ?>
                                 </td>
@@ -165,9 +168,15 @@ include __DIR__ . '/../includes/header.php';
             </div>
             
             <div class="form-group">
+                <label for="description">Description (optionnelle)</label>
+                <textarea id="description" name="description" rows="2" placeholder="Ex: Liste pour le barbecue du 15 juillet"></textarea>
+                <small>Description qui sera affichée aux utilisateurs.</small>
+            </div>
+            
+            <div class="form-group">
                 <label for="columns">Colonnes (séparées par des virgules) *</label>
                 <textarea id="columns" name="columns" rows="3" placeholder="Ex: Ligne 1, Ligne 2, Ligne 3" required></textarea>
-                <small>Séparez chaque colonne par une virgule.</small>
+                <small>Séparez chaque colonne par une virgule. Utilisez l'import Markdown pour une structure plus complexe.</small>
             </div>
             
             <div class="form-group">
@@ -180,6 +189,10 @@ include __DIR__ . '/../includes/header.php';
             <button type="reset" class="btn btn-secondary">Réinitialiser</button>
         </form>
         
+        <div class="import-link">
+            <p>Pour importer une liste depuis un fichier CSV ou Markdown : <a href="import.php" class="btn btn-small btn-primary">Aller à l'import</a></p>
+        </div>
+        
     <?php else: ?>
         <!-- Formulaire pour modifier une liste -->
         <h2>Modifier : <?php echo htmlspecialchars($listToEdit['name']); ?></h2>
@@ -191,6 +204,12 @@ include __DIR__ . '/../includes/header.php';
             <div class="form-group">
                 <label for="name">Nom de la liste *</label>
                 <input type="text" id="name" name="name" value="<?php echo htmlspecialchars($listToEdit['name']); ?>" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="description">Description (optionnelle)</label>
+                <textarea id="description" name="description" rows="2" placeholder="Ex: Liste pour le barbecue du 15 juillet"><?php echo htmlspecialchars($listToEdit['description'] ?? ''); ?></textarea>
+                <small>Description qui sera affichée aux utilisateurs.</small>
             </div>
             
             <div class="form-group">

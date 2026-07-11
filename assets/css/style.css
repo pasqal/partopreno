@@ -330,6 +330,30 @@ h3 {
     color: var(--text-light);
 }
 
+/* Description des listes */
+.list-description {
+    font-size: 0.9rem;
+    color: var(--text-light);
+    margin: 0.75rem 0;
+    padding: 0.5rem;
+    background-color: rgba(74, 111, 165, 0.05);
+    border-radius: 4px;
+    border-left: 3px solid var(--primary-light);
+}
+
+.list-meta {
+    margin: 0.75rem 0;
+    padding: 0.5rem;
+    background-color: rgba(0, 0, 0, 0.02);
+    border-radius: 4px;
+    font-size: 0.875rem;
+}
+
+.list-meta p {
+    margin: 0.25rem 0;
+    color: var(--text-light);
+}
+
 /* Badges */
 .badge {
     display: inline-block;
@@ -508,6 +532,32 @@ h3 {
     padding: 0.2rem 0.4rem;
     border-radius: 3px;
     font-family: monospace;
+}
+
+/* Example links */
+.example-link {
+    margin-top: 1rem;
+    padding: 1rem;
+    background-color: rgba(74, 111, 165, 0.05);
+    border-radius: 4px;
+}
+
+.example-link ul {
+    list-style-type: none;
+    padding-left: 0;
+}
+
+.example-link li {
+    margin: 0.5rem 0;
+}
+
+/* Import link */
+.import-link {
+    margin-top: 1.5rem;
+    padding: 1rem;
+    text-align: center;
+    background-color: rgba(255, 193, 7, 0.1);
+    border-radius: 4px;
 }
 
 /* Footer */

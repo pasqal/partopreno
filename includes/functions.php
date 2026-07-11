@@ -67,9 +67,10 @@ function getListByName($name) {
  * @param string $name Nom de la liste
  * @param array $columns Tableau des colonnes (noms des lignes/événements)
  * @param string|null $password Mot de passe (optionnel)
+ * @param string|null $description Description de la liste (optionnel)
  * @return int|false ID de la nouvelle liste ou false en cas d'erreur
  */
-function addList($name, $columns, $password = null) {
+function addList($name, $columns, $password = null, $description = null) {
     $lists = loadLists();
     
     // Générer un ID unique
@@ -85,6 +86,7 @@ function addList($name, $columns, $password = null) {
         'id' => $newId,
         'name' => $name,
         'password' => $password,
+        'description' => $description,
         'columns' => $columns,
         'created_at' => date('Y-m-d H:i:s')
     ];
@@ -107,9 +109,10 @@ function addList($name, $columns, $password = null) {
  * @param string $name Nom de la liste
  * @param array $columns Tableau des colonnes
  * @param string|null $password Mot de passe (null pour supprimer)
+ * @param string|null $description Description de la liste (null pour supprimer)
  * @return bool Succès ou échec
  */
-function updateList($id, $name, $columns, $password = null) {
+function updateList($id, $name, $columns, $password = null, $description = null) {
     $lists = loadLists();
     $found = false;
     
@@ -118,6 +121,7 @@ function updateList($id, $name, $columns, $password = null) {
             $list['name'] = $name;
             $list['columns'] = $columns;
             $list['password'] = $password;
+            $list['description'] = $description;
             $found = true;
             break;
         }
