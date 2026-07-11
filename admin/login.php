@@ -57,7 +57,7 @@ include __DIR__ . '/../includes/header.php';
         </form>
         
         <p class="mt-1 text-center">
-            <a href="../user/">Accès utilisateur</a>
+            <a href="<?php echo BASE_URL; ?>user/">Accès utilisateur</a>
         </p>
     </div>
 </div>

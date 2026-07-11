@@ -6,5 +6,5 @@
 require_once __DIR__ . '/includes/config.php';
 
 // Rediriger vers la liste des événements
-header("Location: user/");
+header("Location: " . BASE_URL . "user/");
 exit();
