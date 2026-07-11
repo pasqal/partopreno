@@ -78,7 +78,7 @@ include __DIR__ . '/../includes/header.php';
                         </p>
                     </div>
                     
-                    <a href="<?php echo BASE_URL; ?>user/list.php?id=<?php echo $list['id']; ?>" class="btn btn-primary">
+                    <a href="list.php?id=<?php echo $list['id']; ?>" class="btn btn-primary">
                         Voir la liste
                     </a>
                 </div>
@@ -87,7 +87,7 @@ include __DIR__ . '/../includes/header.php';
     <?php endif; ?>
     
     <div class="mt-2">
-        <a href="<?php echo BASE_URL; ?>user/?logout=1" class="btn btn-secondary">Changer de nom</a>
+        <a href="?logout=1" class="btn btn-secondary">Changer de nom</a>
     </div>
 </div>
 

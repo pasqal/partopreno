@@ -20,7 +20,8 @@ define('LISTS_FILE', DATA_DIR . 'lists.json');
 
 // --- Base URL pour les liens ---
 // Le site est installé à la racine, donc BASE_URL est toujours /
-define('BASE_URL', '/');
+// Sans le slash final pour éviter les doublons
+define('BASE_URL', '');
 
 // --- Options ---
 // Affiche les erreurs PHP (désactivez en production)
