@@ -18,12 +18,12 @@ if (isset($_GET['logout'])) {
 
 // Gérer la soumission du nom d'utilisateur
 if (empty($userName)) {
-    $error = '';
+    $warning = '';
     
     if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['user_name'])) {
         $newUserName = sanitizeInput($_POST['user_name']);
         
-        // Vérifier si le nom est déjà utilisé
+        // Vérifier si le nom est déjà utilisé (juste pour information)
         if (!empty($newUserName)) {
             // Charger toutes les inscriptions pour vérifier les noms existants
             $allLists = loadLists();
@@ -39,16 +39,21 @@ if (empty($userName)) {
             }
             
             // Vérifier aussi dans les cookies/sessions
-            if (!$nameExists && isset($_COOKIE['user_name']) && $_COOKIE['user_name'] === $newUserName) {
-                $nameExists = true;
+            if (!$nameExists) {
+                // Vérifier si un autre utilisateur utilise ce nom dans la session
+                // (on ne peut pas vérifier les sessions des autres utilisateurs, mais on peut vérifier les cookies)
+                if (isset($_COOKIE['user_name']) && $_COOKIE['user_name'] === $newUserName) {
+                    $nameExists = true;
+                }
             }
             
             if ($nameExists) {
-                $error = 'Ce nom est déjà utilisé. Veuillez en choisir un autre.';
-            } else {
-                setCurrentUserName($newUserName);
-                redirect(url('user/index.php'));
+                $warning = '⚠️ Ce nom est déjà utilisé par un autre utilisateur. Vous pouvez tout de même l\'utiliser, mais vous serez identifié avec le même nom.';
             }
+            
+            // Toujours accepter le nom, même s'il est déjà utilisé
+            setCurrentUserName($newUserName);
+            redirect(url('user/index.php'));
         }
     }
     
@@ -58,8 +63,8 @@ if (empty($userName)) {
     echo '<h1>Bienvenue</h1>';
     echo '<p>Veuillez entrer votre nom pour commencer :</p>';
     
-    if (!empty($error)):
-        echo '<div class="alert alert-error">' . htmlspecialchars($error) . '</div>';
+    if (!empty($warning)):
+        echo '<div class="alert alert-warning">' . $warning . '</div>';
     endif;
     
     echo '<form method="post" action="">';
